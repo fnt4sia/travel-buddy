@@ -149,7 +149,6 @@ struct UnifiedOnboardingView: View {
         }
     }
 
-    // MARK: - Title View
     @ViewBuilder
     private var titleView: some View {
         switch currentStep {
@@ -190,7 +189,6 @@ struct UnifiedOnboardingView: View {
         }
     }
 
-    // MARK: - Step Label
     private var stepLabel: String {
         switch currentStep {
         case .welcome:
@@ -204,7 +202,6 @@ struct UnifiedOnboardingView: View {
         }
     }
 
-    // MARK: - Name Input Form Content
     private var nameInputFormContent: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("First name")
