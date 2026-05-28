@@ -16,7 +16,6 @@ struct NameInputView: View {
         ZStack {
             Color.white.ignoresSafeArea()
 
-            // Globe in background
             GlobeRepresentable()
                 .ignoresSafeArea()
 
@@ -31,7 +30,6 @@ struct NameInputView: View {
 
                 Spacer()
 
-                // Input + button at bottom
                 VStack(alignment: .leading, spacing: 12) {
                     Text("First name")
                         .font(.headline)

@@ -13,7 +13,9 @@ class GlobeView: SCNView {
     
     private var earthNode: SCNNode!
     private var pinNode: SCNNode?
+    private var ringNode: SCNNode?
     private var rotationAnimation: CAAnimation?
+    private weak var sceneRoot: SCNNode?
     
     override init(frame: CGRect, options: [String: Any]? = nil) {
         super.init(frame: frame, options: options)
@@ -54,7 +56,7 @@ class GlobeView: SCNView {
         
         // Earth sphere
         let sphere = SCNSphere(radius: 1.0)
-        sphere.segmentCount = 72 // Smooth globe
+        sphere.segmentCount = 72
         
         let material = SCNMaterial()
         material.diffuse.contents = tintedEarthTexture()
@@ -64,6 +66,7 @@ class GlobeView: SCNView {
         
         earthNode = SCNNode(geometry: sphere)
         scene.rootNode.addChildNode(earthNode)
+        sceneRoot = scene.rootNode
         
         startIdleRotation()
     }
@@ -72,7 +75,7 @@ class GlobeView: SCNView {
     func startIdleRotation() {
         let rotation = CABasicAnimation(keyPath: "rotation")
         rotation.toValue = NSValue(scnVector4: SCNVector4(0, 1, 0, Float.pi * 2))
-        rotation.duration = 20
+        rotation.duration = 60
         rotation.repeatCount = .infinity
         earthNode.addAnimation(rotation, forKey: "idleRotation")
         rotationAnimation = rotation
@@ -89,14 +92,14 @@ class GlobeView: SCNView {
         let lat = Float(location.coordinate.latitude)
         let lon = Float(location.coordinate.longitude)
         
-        let targetYaw = -lon * (.pi / 180)
+        let targetYaw = -lon * (.pi / 180) + 6
         let targetPitch = lat * (.pi / 180)
         
         SCNTransaction.begin()
         SCNTransaction.animationDuration = 2.0
         SCNTransaction.animationTimingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
         SCNTransaction.completionBlock = {
-            self.dropPin(latitude: lat, longitude: lon)
+            self.dropPinWithRotation(latitude: lat, longitude: lon, yaw: targetYaw, pitch: targetPitch)
             completion?()
         }
         
@@ -104,60 +107,67 @@ class GlobeView: SCNView {
         SCNTransaction.commit()
     }
     
-    // MARK: - Drop Pin at coordinates
-    private func dropPin(latitude: Float, longitude: Float) {
+    // MARK: - Drop Pin at coordinates with rotation
+    private func dropPinWithRotation(latitude: Float, longitude: Float, yaw: Float, pitch: Float) {
         let latRad = latitude * (.pi / 180)
         let lonRad = longitude * (.pi / 180)
-        let radius: Float = 1.05
+        let radius: Float = 1
         
+        // Calculate position on earth in local coordinates
         let x = radius * cos(latRad) * cos(lonRad)
-        let y = radius * sin(latRad)
-        let z = radius * cos(latRad) * sin(lonRad)
+        let y = radius * sin(latRad) + 0.3
+        let z = radius * cos(latRad) * sin(lonRad) + 0.4
         
-        let pinGeometry = SCNSphere(radius: 0.04)
+        let pinPosition = SCNVector3(x, y, z)
+        print("[DEBUG] Pin local position: \(pinPosition)")
+        
+        let pinGeometry = SCNSphere(radius: 0.08)
         let pinMaterial = SCNMaterial()
-        pinMaterial.diffuse.contents = UIColor(red: 0.9, green: 0.2, blue: 0.2, alpha: 1)
-        pinMaterial.emission.contents = UIColor(red: 0.9, green: 0.2, blue: 0.2, alpha: 0.5)
+        pinMaterial.diffuse.contents = UIColor(red: 1.0, green: 0.0, blue: 0.0, alpha: 1)
+        pinMaterial.emission.contents = UIColor(red: 1.0, green: 0.0, blue: 0.0, alpha: 1)
+        pinMaterial.shininess = 1.0
         pinGeometry.materials = [pinMaterial]
         
         pinNode?.removeFromParentNode()
         pinNode = SCNNode(geometry: pinGeometry)
-        pinNode?.position = SCNVector3(x, y, z)
+        pinNode?.position = pinPosition
         
         // Animate pin drop
         pinNode?.scale = SCNVector3(0, 0, 0)
         earthNode.addChildNode(pinNode!)
         
         SCNTransaction.begin()
-        SCNTransaction.animationDuration = 0.4
+        SCNTransaction.animationDuration = 0.5
         SCNTransaction.animationTimingFunction = CAMediaTimingFunction(name: .easeOut)
         pinNode?.scale = SCNVector3(1, 1, 1)
         SCNTransaction.commit()
         
         // Add pulsing glow ring
-        addPulseRing(at: SCNVector3(x, y, z))
+        addPulseRing(at: pinPosition)
     }
     
     private func addPulseRing(at position: SCNVector3) {
-        let ring = SCNTorus(ringRadius: 0.06, pipeRadius: 0.008)
+        let ring = SCNTorus(ringRadius: 0.12, pipeRadius: 0.01)
         let mat = SCNMaterial()
-        mat.diffuse.contents = UIColor(red: 0.9, green: 0.2, blue: 0.2, alpha: 0.6)
+        mat.diffuse.contents = UIColor(red: 1.0, green: 0.0, blue: 0.0, alpha: 0.8)
+        mat.emission.contents = UIColor(red: 1.0, green: 0.0, blue: 0.0, alpha: 0.9)
         ring.materials = [mat]
         
-        let ringNode = SCNNode(geometry: ring)
-        ringNode.position = position
-        ringNode.look(at: SCNVector3(0, 0, 0))
-        earthNode.addChildNode(ringNode)
+        ringNode?.removeFromParentNode()
+        ringNode = SCNNode(geometry: ring)
+        ringNode?.position = position
+        ringNode?.look(at: SCNVector3(0, 0, 0))
+        earthNode.addChildNode(ringNode!)
         
         // Pulse animation
         let pulse = CABasicAnimation(keyPath: "scale")
         pulse.fromValue = NSValue(scnVector3: SCNVector3(1, 1, 1))
-        pulse.toValue = NSValue(scnVector3: SCNVector3(2, 2, 2))
-        pulse.duration = 1.2
+        pulse.toValue = NSValue(scnVector3: SCNVector3(2.5, 2.5, 2.5))
+        pulse.duration = 1.5
         pulse.repeatCount = .infinity
         pulse.autoreverses = true
         pulse.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
-        ringNode.addAnimation(pulse, forKey: "pulse")
+        ringNode?.addAnimation(pulse, forKey: "pulse")
     }
     
     private func tintedEarthTexture() -> UIImage? {
@@ -165,17 +175,13 @@ class GlobeView: SCNView {
         
         let ciImage = CIImage(image: base)!
         
-        // Desaturate
         let desaturate = CIFilter(name: "CIColorControls")!
         desaturate.setValue(ciImage, forKey: kCIInputImageKey)
-        desaturate.setValue(0.15, forKey: kCIInputSaturationKey)
-        desaturate.setValue(0.05, forKey: kCIInputBrightnessKey)
-        
-        // Tint teal
+            
         let colorMatrix = CIFilter(name: "CIColorMatrix")!
         colorMatrix.setValue(desaturate.outputImage, forKey: kCIInputImageKey)
-        colorMatrix.setValue(CIVector(x: 0.7, y: 0, z: 0, w: 0), forKey: "inputRVector")
-        colorMatrix.setValue(CIVector(x: 0, y: 0.9, z: 0, w: 0), forKey: "inputGVector")
+        colorMatrix.setValue(CIVector(x: 1.0, y: 0, z: 0, w: 0), forKey: "inputRVector")
+        colorMatrix.setValue(CIVector(x: 0, y: 1.0, z: 0, w: 0), forKey: "inputGVector")
         colorMatrix.setValue(CIVector(x: 0, y: 0, z: 1.0, w: 0), forKey: "inputBVector")
         
         let context = CIContext()
