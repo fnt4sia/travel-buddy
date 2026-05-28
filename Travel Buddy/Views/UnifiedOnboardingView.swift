@@ -176,7 +176,7 @@ struct UnifiedOnboardingView: View {
                 .fontWeight(.bold)
                 .foregroundColor(AppColors.primaryText)
 
-                VStack(spacing: 0) {
+                HStack(spacing: 0) {
                     Text("Welcome to ")
                         .font(.largeTitle)
                         .fontWeight(.bold)
@@ -187,9 +187,6 @@ struct UnifiedOnboardingView: View {
                         .fontWeight(.bold)
                         .foregroundColor(AppColors.accent)
                 }
-//                Spacer().frame(height: 200)
-//                Text("📍")
-                
             }
             .frame(maxWidth: .infinity, alignment: .center)
         }
