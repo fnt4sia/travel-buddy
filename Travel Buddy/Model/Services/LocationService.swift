@@ -17,24 +17,41 @@ final class LocationService: NSObject, CLLocationManagerDelegate, ObservableObje
     override init() {
         super.init()
         manager.delegate = self
+        manager.desiredAccuracy = kCLLocationAccuracyBest
     }
 
     func requestPermissionAndLocation() async throws -> CLLocation {
-        manager.requestWhenInUseAuthorization()
+        let status = manager.authorizationStatus
+        
+        // If authorized, get location directly
+        if status == .authorizedWhenInUse || status == .authorizedAlways {
+            return try await withCheckedThrowingContinuation { continuation in
+                self.continuation = continuation
+                manager.requestLocation()
+            }
+        }
+        
         return try await withCheckedThrowingContinuation { continuation in
             self.continuation = continuation
-            manager.requestLocation()
+            manager.requestWhenInUseAuthorization()
         }
     }
 
     func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
-        if manager.authorizationStatus == .authorizedWhenInUse {
+        let status = manager.authorizationStatus
+        
+        if status == .authorizedWhenInUse || status == .authorizedAlways {
             manager.requestLocation()
+        } else if status == .denied || status == .restricted {
+            let error = NSError(domain: "LocationService", code: -1, userInfo: [NSLocalizedDescriptionKey: "Location permission denied"])
+            continuation?.resume(throwing: error)
+            continuation = nil
         }
     }
     
     func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         guard let location = locations.first else { return }
+        print("[DEBUG] Location received: \(location.coordinate.latitude), \(location.coordinate.longitude) - Accuracy: \(location.horizontalAccuracy)m")
         continuation?.resume(returning: location)
         continuation = nil
     }

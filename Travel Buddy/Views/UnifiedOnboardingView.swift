@@ -6,6 +6,9 @@
 //
 
 import SwiftUI
+import CoreLocation
+
+private let colors = AppColors()
 
 enum OnboardingStep {
     case welcome
@@ -18,161 +21,213 @@ struct UnifiedOnboardingView: View {
     @State private var currentStep: OnboardingStep = .welcome
     @State private var firstName = ""
     @State private var city: String?
+    @State private var userLocation: CLLocation?
     @StateObject private var locationViewModel = LocationPermissionViewModel()
-    
+
+
     var body: some View {
         ZStack(alignment: .top) {
-            // Background color
-            Color.white
+            backgroundView
                 .ignoresSafeArea()
-            
-            // Fixed-size globe that moves down
-            GlobeRepresentable()
-                .frame(height: 300)
+
+            GlobeRepresentable(location: userLocation)
+                .frame(height: 1200)
                 .ignoresSafeArea(edges: .top)
                 .offset(y: globeOffset)
-            
-            // Content positioned over the globe
-            VStack(spacing: 0) {
-                Spacer()
-                    .frame(height: contentTopSpacing)
-                
-                // Content based on current step
-                Group {
-                    switch currentStep {
-                    case .welcome:
-                        welcomeContent
-                    case .nameInput:
-                        nameInputContent
-                    case .locationPermission:
-                        locationPermissionContent
-                    case .locationConfirmed:
-                        locationConfirmedContent
-                    }
+
+            // Content overlay
+            if currentStep == .welcome {
+                VStack(spacing: 0) {
+                    Spacer()
+
+                    welcomeContent
+                        .padding(.horizontal, 24)
+                        .padding(.bottom, 48)
+
+                    Spacer()
+                        .frame(height: 200)
                 }
-                .frame(maxWidth: .infinity)
-                .padding(.horizontal, 24)
-                .padding(.bottom, 48)
-                
-                Spacer()
+            } else {
+                VStack(spacing: 0) {
+
+                    Spacer()
+                        .frame(height: 220)
+                    titleView
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, 24)
+                        .padding(.bottom, 24)
+
+                    Spacer()
+                    
+                    // Header
+                    VStack(spacing: 0) {
+
+                        headerView
+                            .frame(maxWidth: .infinity)
+                            .padding(.horizontal, 24)
+                            .padding(.top, 16)
+                            .padding(.bottom, 12)
+
+                        // Form at bottom with glass effect
+                        formContent
+                            .frame(maxWidth: .infinity)
+                            .padding(.horizontal, 24)
+                            .padding(.vertical, 24)
+
+                            .padding(.horizontal, 12)
+                            .padding(.bottom, 48)
+                    }.background(
+                        RoundedRectangle(cornerRadius: 24)
+                            .fill(AppColors.formBackground)
+                            .background(
+                                RoundedRectangle(cornerRadius: 24)
+                                    .stroke(
+                                        AppColors.formBorder,
+                                        lineWidth: 1
+                                    )
+                            )
+                    )
+
+                    Spacer()
+                        .frame(height: 200)
+                }
             }
         }
         .navigationBarHidden(true)
     }
-    
-    // MARK: - Globe Position Animation
-    private var globeOffset: CGFloat {
+
+    // MARK: - Form Content
+    @ViewBuilder
+    private var formContent: some View {
         switch currentStep {
         case .welcome:
-            return 0
+            EmptyView()
         case .nameInput:
-            return -50
+            nameInputFormContent
         case .locationPermission:
-            return -100
+            locationPermissionFormContent
         case .locationConfirmed:
-            return -150
+            locationConfirmedFormContent
         }
     }
-    
-    // MARK: - Content Top Spacing
-    private var contentTopSpacing: CGFloat {
-        switch currentStep {
-        case .welcome:
-            return 100
-        case .nameInput:
-            return 50
-        case .locationPermission:
-            return 0
-        case .locationConfirmed:
-            return -50
-        }
-    }
-    
-    // MARK: - Welcome Content
-    private var welcomeContent: some View {
-        VStack(spacing: 12) {
-            Text("Welcome to VV!")
-                .font(.title)
-                .fontWeight(.bold)
-                .foregroundColor(.black)
-            
-            Text("Recommendations and friends\nbased on your preference.")
-                .font(.subheadline)
-                .foregroundColor(.black.opacity(0.7))
-                .multilineTextAlignment(.center)
-            
-            Button(action: {
-                withAnimation(.easeInOut(duration: 0.6)) {
-                    currentStep = .nameInput
-                }
-            }) {
-                Text("Get Started")
-                    .fontWeight(.semibold)
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(Color.teal)
-                    .foregroundColor(.white)
-                    .clipShape(Capsule())
-            }
-        }
-    }
-    
-    // MARK: - Name Input Content
-    private var nameInputContent: some View {
-        VStack(alignment: .leading, spacing: 12) {
+
+    // MARK: - Header View
+    @ViewBuilder
+    private var headerView: some View {
+        if currentStep != .locationConfirmed {
             HStack {
                 Button(action: {
                     withAnimation(.easeInOut(duration: 0.6)) {
-                        currentStep = .welcome
+                        currentStep =
+                            currentStep == .nameInput ? .welcome : .nameInput
                     }
                 }) {
                     Image(systemName: "chevron.left")
-                        .foregroundColor(.black)
+                        .foregroundColor(AppColors.primaryText)
                 }
-                
+
                 Spacer()
-                
-                Text("Name — 1 of 2")
+
+                Text(stepLabel)
                     .font(.caption)
-                    .foregroundColor(.gray)
-                
+                    .foregroundColor(AppColors.secondaryText)
+
                 Spacer()
-                
+
                 Button(action: {
                     withAnimation(.easeInOut(duration: 0.6)) {
-                        currentStep = .locationPermission
+                        if currentStep == .nameInput {
+                            currentStep = .locationPermission
+                        } else if currentStep == .locationPermission {
+                            currentStep = .locationConfirmed
+                        }
                     }
                 }) {
                     Text("Skip")
                         .font(.caption)
-                        .foregroundColor(.gray)
+                        .foregroundColor(AppColors.secondaryText)
                 }
             }
-            .padding(.bottom, 12)
-            
+        }
+    }
+
+    // MARK: - Title View
+    @ViewBuilder
+    private var titleView: some View {
+        switch currentStep {
+        case .welcome:
+            EmptyView()
+        case .nameInput:
             Text("Let's start your\nadventure!")
                 .font(.largeTitle)
                 .fontWeight(.bold)
-                .foregroundColor(.black)
-            
-            Spacer()
-                .frame(height: 24)
-            
+                .foregroundColor(AppColors.primaryText)
+        case .locationPermission:
+            Text("Enable your Location 📍")
+                .font(.largeTitle)
+                .fontWeight(.bold)
+                .foregroundColor(AppColors.primaryText)
+        case .locationConfirmed:
+            VStack(alignment: .center, spacing: 4) {
+                Text(
+                    "Hi, \(UserDefaults.standard.string(forKey: "userName") ?? "there")."
+                )
+                .font(.largeTitle)
+                .fontWeight(.bold)
+                .foregroundColor(AppColors.primaryText)
+
+                VStack(spacing: 0) {
+                    Text("Welcome to ")
+                        .font(.largeTitle)
+                        .fontWeight(.bold)
+                        .foregroundColor(AppColors.primaryText)
+
+                    Text(city ?? "your city")
+                        .font(.largeTitle)
+                        .fontWeight(.bold)
+                        .foregroundColor(AppColors.accent)
+                }
+//                Spacer().frame(height: 200)
+//                Text("📍")
+                
+            }
+            .frame(maxWidth: .infinity, alignment: .center)
+        }
+    }
+
+    // MARK: - Step Label
+    private var stepLabel: String {
+        switch currentStep {
+        case .welcome:
+            return ""
+        case .nameInput:
+            return "Name — 1 of 2"
+        case .locationPermission:
+            return "Location — 2 of 2"
+        case .locationConfirmed:
+            return ""
+        }
+    }
+
+    // MARK: - Name Input Form Content
+    private var nameInputFormContent: some View {
+        VStack(alignment: .leading, spacing: 12) {
             Text("First name")
                 .font(.headline)
-                .foregroundColor(.black)
-            
+                .foregroundColor(AppColors.primaryText)
+
             TextField("How can we address you?", text: $firstName)
                 .padding()
-                .background(Color.white)
+                .background(AppColors.textFieldBackground)
                 .clipShape(RoundedRectangle(cornerRadius: 12))
                 .overlay(
                     RoundedRectangle(cornerRadius: 12)
-                        .stroke(Color.gray.opacity(0.3), lineWidth: 1)
+                        .stroke(AppColors.textFieldBorder, lineWidth: 1)
                 )
-            
+
             Button(action: {
-                guard !firstName.trimmingCharacters(in: .whitespaces).isEmpty else { return }
+                guard !firstName.trimmingCharacters(in: .whitespaces).isEmpty
+                else { return }
                 UserDefaults.standard.set(firstName, forKey: "userName")
                 withAnimation(.easeInOut(duration: 0.6)) {
                     currentStep = .locationPermission
@@ -182,121 +237,119 @@ struct UnifiedOnboardingView: View {
                     .fontWeight(.semibold)
                     .frame(maxWidth: .infinity)
                     .padding()
-                    .background(firstName.isEmpty ? Color.teal.opacity(0.4) : Color.teal)
+                    .background(
+                        firstName.isEmpty ? AppColors.accentDisabled : AppColors.accent
+                    )
                     .foregroundColor(.white)
                     .clipShape(Capsule())
             }
             .disabled(firstName.isEmpty)
         }
     }
-    
-    // MARK: - Location Permission Content
-    private var locationPermissionContent: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Button(action: {
-                    withAnimation(.easeInOut(duration: 0.6)) {
-                        currentStep = .nameInput
-                    }
-                }) {
-                    Image(systemName: "chevron.left")
-                        .foregroundColor(.black)
-                }
-                
-                Spacer()
-                
-                Text("Location — 2 of 2")
-                    .font(.caption)
-                    .foregroundColor(.gray)
-                
-                Spacer()
-                
-                Button(action: {
-                    withAnimation(.easeInOut(duration: 0.6)) {
-                        currentStep = .locationConfirmed
-                    }
-                }) {
-                    Text("Skip")
-                        .font(.caption)
-                        .foregroundColor(.gray)
-                }
-            }
-            .padding(.bottom, 12)
-            
-            Text("Enable your Location 📍")
-                .font(.largeTitle)
-                .fontWeight(.bold)
-                .foregroundColor(.black)
-            
-            Text("Location access allows you to find recommended local activities and groups of people that are relevant to you.")
-                .foregroundColor(.black.opacity(0.7))
-                .font(.body)
-            
-            Spacer()
-                .frame(height: 24)
-            
+
+    // MARK: - Location Permission Form Content
+    private var locationPermissionFormContent: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text(
+                "Location access allows you to find recommended local activities and groups of people that are relevant to you."
+            )
+            .foregroundColor(AppColors.primaryText.opacity(0.7))
+            .font(.body)
+            .lineLimit(nil)
+
             Button(action: {
                 Task {
                     await locationPermissionTapped()
                 }
             }) {
-                Text(locationViewModel.isLoading ? "Finding location..." : "Allow location access")
-                    .fontWeight(.semibold)
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(Color.teal)
-                    .foregroundColor(.white)
-                    .clipShape(Capsule())
+                Text(
+                    locationViewModel.isLoading
+                        ? "Finding location..." : "Allow location access"
+                )
+                .fontWeight(.semibold)
+                .frame(maxWidth: .infinity)
+                .padding()
+                .background(AppColors.accent)
+                .foregroundColor(.white)
+                .clipShape(Capsule())
             }
             .disabled(locationViewModel.isLoading)
         }
     }
-    
-    // MARK: - Location Confirmed Content
-    private var locationConfirmedContent: some View {
+
+    // MARK: - Location Confirmed Form Content
+    private var locationConfirmedFormContent: some View {
+        Button(action: {
+            UserDefaults.standard.set(true, forKey: "hasOnboarded")
+        }) {
+            Text("Start Exploring")
+                .fontWeight(.semibold)
+                .frame(maxWidth: .infinity)
+                .padding()
+                .background(AppColors.accent)
+                .foregroundColor(.white)
+                .clipShape(Capsule())
+        }
+    }
+
+    // MARK: - Background View
+    private var backgroundView: some View {
+        if currentStep == .welcome {
+            return AnyView(AppColors.welcomeBackground)
+        } else {
+            return AnyView(AppColors.background)
+        }
+    }
+
+    // MARK: - Globe Position Animation
+    private var globeOffset: CGFloat {
+        switch currentStep {
+        case .welcome:
+            return -250
+        case .nameInput:
+            return 250
+        case .locationPermission:
+            return 250
+        case .locationConfirmed:
+            return 200
+        }
+    }
+
+    // MARK: - Welcome Content
+    private var welcomeContent: some View {
         VStack(spacing: 12) {
-            let userName = UserDefaults.standard.string(forKey: "userName") ?? "there"
-            let displayCity = city ?? "your city"
-            
-            Text("Hi, \(userName).")
-                .font(.largeTitle)
+            Text("Welcome to VV!")
+                .font(.title)
                 .fontWeight(.bold)
-                .foregroundColor(.black)
-            
-            HStack(spacing: 0) {
-                Text("Welcome to ")
-                    .font(.largeTitle)
-                    .fontWeight(.bold)
-                    .foregroundColor(.black)
-                
-                Text(displayCity)
-                    .font(.largeTitle)
-                    .fontWeight(.bold)
-                    .foregroundColor(.teal)
-            }
-            
-            Spacer()
-                .frame(height: 24)
-            
+                .foregroundColor(.white)
+
+            Text("Recommendations and friends\nbased on your preference.")
+                .font(.subheadline)
+                .foregroundColor(.white.opacity(0.7))
+                .multilineTextAlignment(.center)
+
             Button(action: {
-                UserDefaults.standard.set(true, forKey: "hasOnboarded")
+                withAnimation(.easeInOut(duration: 0.6)) {
+                    currentStep = .nameInput
+                }
             }) {
-                Text("Start Exploring")
+                Text("Get Started")
                     .fontWeight(.semibold)
                     .frame(maxWidth: .infinity)
                     .padding()
-                    .background(Color.teal)
+                    .background(AppColors.accent)
                     .foregroundColor(.white)
                     .clipShape(Capsule())
             }
         }
     }
-    
+
     // MARK: - Location Permission Handler
     private func locationPermissionTapped() async {
         await locationViewModel.allowLocationTapped()
         if locationViewModel.navigateToConfirm {
             city = locationViewModel.city
+            userLocation = locationViewModel.location
             withAnimation(.easeInOut(duration: 0.6)) {
                 currentStep = .locationConfirmed
             }
