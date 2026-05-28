@@ -63,7 +63,7 @@ extension PlaceAnnotation {
 }
 
 struct ThumbnailAnnotationView: View {
-    let symbolName: String
+    let imageName: String
     let isSelected: Bool
 
     private let size: CGFloat = 56
@@ -76,10 +76,10 @@ struct ThumbnailAnnotationView: View {
                     .shadow(color: .black.opacity(isSelected ? 0.35 : 0.2),
                             radius: isSelected ? 8 : 4, x: 0, y: 2)
 
-                Image(systemName: symbolName)
+                Image(imageName)
                     .resizable()
-                    .scaledToFit()
-                    .padding(10)
+                    .scaledToFill()
+                    .padding(4)
                     .foregroundStyle(AppColors.accent)
             }
             .frame(width: size, height: size)
@@ -106,14 +106,13 @@ struct Triangle: Shape {
 }
 
 struct PlaceholderImage: View {
-    let symbolName: String
+    let imageName: String
     var body: some View {
         ZStack {
             Color(UIColor.secondarySystemBackground)
-            Image(systemName: symbolName)
+            Image(imageName)
                 .resizable()
-                .scaledToFit()
-                .padding(32)
+                .scaledToFill()
                 .foregroundStyle(AppColors.accent.opacity(0.6))
         }
     }
@@ -134,9 +133,9 @@ struct PlaceDetailSheet: View {
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 16) {
 
-                    VStack(alignment: .leading, spacing: 4) {
+                    VStack(alignment: .leading, spacing: 8) {
                         Text(place.name)
-                            .font(.title3)
+                            .font(.title)
                             .fontWeight(.bold)
                             .foregroundStyle(AppColors.primaryText)
 
@@ -161,7 +160,7 @@ struct PlaceDetailSheet: View {
                     // for image
                     TabView {
                         ForEach(place.imageName, id: \.self) { sym in
-                            PlaceholderImage(symbolName: sym)
+                            PlaceholderImage(imageName: sym)
                                 .clipShape(RoundedRectangle(cornerRadius: 14))
                                 .padding(.horizontal, 20)
                         }
@@ -256,7 +255,7 @@ struct MainMapView: View {
                 annotationItems: visibleAnnotations) { place in
                 MapAnnotation(coordinate: place.coordinate) {
                     ThumbnailAnnotationView(
-                        symbolName: place.imageName.first ?? "mappin",
+                        imageName: place.imageName.first ?? "mappin",
                         isSelected: selectedPlace?.id == place.id
                     )
                     .onTapGesture {
