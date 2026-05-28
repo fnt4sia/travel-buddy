@@ -58,7 +58,7 @@ struct UnifiedOnboardingView: View {
                         .padding(.bottom, 24)
 
                     Spacer()
-                    
+
                     // Header
                     VStack(spacing: 0) {
 
@@ -96,7 +96,6 @@ struct UnifiedOnboardingView: View {
         .navigationBarHidden(true)
     }
 
-    // MARK: - Form Content
     @ViewBuilder
     private var formContent: some View {
         switch currentStep {
@@ -111,7 +110,6 @@ struct UnifiedOnboardingView: View {
         }
     }
 
-    // MARK: - Header View
     @ViewBuilder
     private var headerView: some View {
         if currentStep != .locationConfirmed {
@@ -244,7 +242,6 @@ struct UnifiedOnboardingView: View {
         }
     }
 
-    // MARK: - Location Permission Form Content
     private var locationPermissionFormContent: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text(
@@ -274,9 +271,13 @@ struct UnifiedOnboardingView: View {
         }
     }
 
-    // MARK: - Location Confirmed Form Content
     private var locationConfirmedFormContent: some View {
         Button(action: {
+
+            if let detectedCity = city {
+                UserDefaults.standard.set(detectedCity, forKey: "userCity")
+            }
+
             UserDefaults.standard.set(true, forKey: "hasOnboarded")
         }) {
             Text("Start Exploring")
@@ -289,7 +290,6 @@ struct UnifiedOnboardingView: View {
         }
     }
 
-    // MARK: - Background View
     private var backgroundView: some View {
         if currentStep == .welcome {
             return AnyView(AppColors.welcomeBackground)
@@ -298,7 +298,6 @@ struct UnifiedOnboardingView: View {
         }
     }
 
-    // MARK: - Globe Position Animation
     private var globeOffset: CGFloat {
         switch currentStep {
         case .welcome:
@@ -312,7 +311,6 @@ struct UnifiedOnboardingView: View {
         }
     }
 
-    // MARK: - Welcome Content
     private var welcomeContent: some View {
         VStack(spacing: 12) {
             Text("Welcome to VV!")
@@ -341,7 +339,6 @@ struct UnifiedOnboardingView: View {
         }
     }
 
-    // MARK: - Location Permission Handler
     private func locationPermissionTapped() async {
         await locationViewModel.allowLocationTapped()
         if locationViewModel.navigateToConfirm {
