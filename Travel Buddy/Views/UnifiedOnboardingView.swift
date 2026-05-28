@@ -22,6 +22,7 @@ struct UnifiedOnboardingView: View {
     @State private var firstName = ""
     @State private var city: String?
     @State private var userLocation: CLLocation?
+    @AppStorage("hasOnboarded") private var hasOnboarded = false
     @StateObject private var locationViewModel = LocationPermissionViewModel()
 
 
@@ -277,7 +278,7 @@ struct UnifiedOnboardingView: View {
     // MARK: - Location Confirmed Form Content
     private var locationConfirmedFormContent: some View {
         Button(action: {
-            UserDefaults.standard.set(true, forKey: "hasOnboarded")
+            hasOnboarded = true
         }) {
             Text("Start Exploring")
                 .fontWeight(.semibold)
