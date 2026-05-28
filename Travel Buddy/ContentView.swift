@@ -15,7 +15,7 @@ struct ContentView: View {
             Text("Main App")
         } else {
             NavigationStack {
-                WelcomeView()
+                UnifiedOnboardingView()
             }
         }
     }

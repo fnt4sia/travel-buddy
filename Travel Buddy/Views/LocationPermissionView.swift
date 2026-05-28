@@ -8,20 +8,12 @@
 import SwiftUI
 import SceneKit
 
-// Bridge UIKit GlobeView into SwiftUI
-struct GlobeRepresentable: UIViewRepresentable {
-    func makeUIView(context: Context) -> GlobeView {
-        return GlobeView(frame: .zero)  // ← fixes "Missing argument for frame"
-    }
-    func updateUIView(_ uiView: GlobeView, context: Context) {}
-}
-
 struct LocationPermissionView: View {
     @StateObject private var viewModel = LocationPermissionViewModel()
 
     var body: some View {
         ZStack {
-            GlobeRepresentable()  // ← use this instead of GlobeView() directly
+            GlobeRepresentable()
                 .ignoresSafeArea()
 
             VStack {
@@ -48,7 +40,7 @@ struct LocationPermissionView: View {
             }
         }
         .navigationDestination(isPresented: $viewModel.navigateToConfirm) {
-            LocationConfirmView(city: viewModel.city ?? "your city")  // create this next
+            LocationConfirmView(city: viewModel.city ?? "your city")
         }
     }
 }
