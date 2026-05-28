@@ -23,17 +23,22 @@ final class LocationService: NSObject, CLLocationManagerDelegate, ObservableObje
     func requestPermissionAndLocation() async throws -> CLLocation {
         let status = manager.authorizationStatus
         
-        // If authorized, get location directly
-        if status == .authorizedWhenInUse || status == .authorizedAlways {
+        // Check current authorization status
+        if status == .notDetermined {
+            // Request permission first
+            return try await withCheckedThrowingContinuation { continuation in
+                self.continuation = continuation
+                manager.requestWhenInUseAuthorization()
+            }
+        } else if status == .authorizedWhenInUse || status == .authorizedAlways {
+            // Already authorized, get location directly
             return try await withCheckedThrowingContinuation { continuation in
                 self.continuation = continuation
                 manager.requestLocation()
             }
-        }
-        
-        return try await withCheckedThrowingContinuation { continuation in
-            self.continuation = continuation
-            manager.requestWhenInUseAuthorization()
+        } else {
+            // Permission denied or restricted
+            throw NSError(domain: "LocationService", code: -1, userInfo: [NSLocalizedDescriptionKey: "Location permission denied"])
         }
     }
 
@@ -41,8 +46,10 @@ final class LocationService: NSObject, CLLocationManagerDelegate, ObservableObje
         let status = manager.authorizationStatus
         
         if status == .authorizedWhenInUse || status == .authorizedAlways {
+            // Permission granted, now request location
             manager.requestLocation()
         } else if status == .denied || status == .restricted {
+            // Permission denied
             let error = NSError(domain: "LocationService", code: -1, userInfo: [NSLocalizedDescriptionKey: "Location permission denied"])
             continuation?.resume(throwing: error)
             continuation = nil

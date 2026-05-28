@@ -75,7 +75,7 @@ class GlobeView: SCNView {
     func startIdleRotation() {
         let rotation = CABasicAnimation(keyPath: "rotation")
         rotation.toValue = NSValue(scnVector4: SCNVector4(0, 1, 0, Float.pi * 2))
-        rotation.duration = 60
+        rotation.duration = 20
         rotation.repeatCount = .infinity
         earthNode.addAnimation(rotation, forKey: "idleRotation")
         rotationAnimation = rotation
@@ -92,7 +92,7 @@ class GlobeView: SCNView {
         let lat = Float(location.coordinate.latitude)
         let lon = Float(location.coordinate.longitude)
         
-        let targetYaw = -lon * (.pi / 180) + 6
+        let targetYaw = -lon * (.pi / 180) + 5.9
         let targetPitch = lat * (.pi / 180)
         
         SCNTransaction.begin()
@@ -115,8 +115,8 @@ class GlobeView: SCNView {
         
         // Calculate position on earth in local coordinates
         let x = radius * cos(latRad) * cos(lonRad)
-        let y = radius * sin(latRad) + 0.3
-        let z = radius * cos(latRad) * sin(lonRad) + 0.4
+        let y = radius * sin(latRad)
+        let z = radius * cos(latRad) * sin(lonRad)
         
         let pinPosition = SCNVector3(x, y, z)
         print("[DEBUG] Pin local position: \(pinPosition)")
