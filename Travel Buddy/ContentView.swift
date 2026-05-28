@@ -8,11 +8,11 @@
 import SwiftUI
 
 struct ContentView: View {
-    @State private var hasOnboarded = UserDefaults.standard.bool(forKey: "hasOnboarded")
+    @AppStorage("hasOnboarded") private var hasOnboarded = false
 
     var body: some View {
         if hasOnboarded {
-            Text("Main App")
+            MainMapView()
         } else {
             NavigationStack {
                 UnifiedOnboardingView()
