@@ -18,7 +18,7 @@ struct LocationConfirmView: View {
                 .font(.largeTitle).bold()
             Text("Welcome to ")
                 .font(.largeTitle).bold()
-            + Text(city)
+            Text(city)
                 .font(.largeTitle).bold()
                 .foregroundColor(.teal)
 

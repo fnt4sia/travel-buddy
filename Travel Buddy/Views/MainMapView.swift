@@ -1,322 +1,100 @@
-import MapKit
+//
+//  MainMapView.swift
+//  Travel Buddy
+//
+//  Created by Balqis Putri Muharda on 29/05/26.
+//
+
 import SwiftUI
+import MapKit
 
-struct MainMapView: View {
-    private static let ubudCoordinate = CLLocationCoordinate2D(latitude: -8.5069, longitude: 115.2625)
-    private let spots = TravelSpot.ubudSamples
+struct PlaceAnnotation: Identifiable {
+    let id = UUID()
+    let name: String
+    let address: String
+    let description: String
+    let coordinate: CLLocationCoordinate2D
+    let category: PlaceCategory
+    let imageName: [String]
+}
 
-    @State private var cameraPosition: MapCameraPosition = .camera(
-        MapCamera(
-            centerCoordinate: MainMapView.ubudCoordinate,
-            distance: 26000,
-            heading: 0,
-            pitch: 0
-        )
-    )
-    @State private var cameraDistance: CLLocationDistance = 26000
-    @State private var selectedCategory: TravelSpotCategory?
-    @State private var selectedSpot: TravelSpot?
-    @State private var showsFilter = false
+enum PlaceCategory: String, CaseIterable {
+    case activities = "activities"
+    case food       = "food"
+    case nature     = "nature"
 
-    private var showsSpotMarkers: Bool {
-        cameraDistance < 11000
-    }
-
-    private var filteredSpots: [TravelSpot] {
-        guard let selectedCategory = selectedCategory else { return spots }
-        return spots.filter { $0.category == selectedCategory }
-    }
-
-    private var visibleSpots: [TravelSpot] {
-        showsSpotMarkers ? filteredSpots : []
-    }
-
-    var body: some View {
-        ZStack(alignment: .top) {
-            Map(position: $cameraPosition, interactionModes: .all) {
-                ForEach(visibleSpots) { spot in
-                    Annotation("", coordinate: spot.coordinate, anchor: .bottom) {
-                        Button {
-                            withAnimation(.spring(response: 0.34, dampingFraction: 0.88)) {
-                                selectedSpot = spot
-                                showsFilter = false
-                            }
-                        } label: {
-                            SpotMapMarker(
-                                spot: spot,
-                                isSelected: selectedSpot?.id == spot.id
-                            )
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
-            }
-            .ignoresSafeArea()
-            .mapStyle(.standard(pointsOfInterest: .excludingAll))
-            .onMapCameraChange(frequency: .continuous) { context in
-                cameraDistance = context.camera.distance
-            }
-
-            VStack(spacing: 16) {
-                HStack(alignment: .top) {
-                    titleView
-
-                    Spacer()
-
-                    filterButton
-                        .overlay(alignment: .topTrailing) {
-                            if showsFilter {
-                                filterMenu
-                                    .offset(y: 58)
-                                    .transition(.scale(scale: 0.92, anchor: .topTrailing).combined(with: .opacity))
-                            }
-                        }
-                }
-                .padding(.horizontal, 24)
-                .padding(.top, 32)
-
-                Spacer()
-            }
-
-            if selectedSpot != nil {
-                Color.black.opacity(0.36)
-                    .ignoresSafeArea()
-                    .transition(.opacity)
-                    .onTapGesture {
-                        withAnimation(.spring(response: 0.34, dampingFraction: 0.9)) {
-                            selectedSpot = nil
-                        }
-                    }
-            }
-
-            if let selectedSpot = selectedSpot {
-                VStack {
-                    Spacer()
-
-                    SpotDetailSheet(spot: selectedSpot)
-                }
-                .ignoresSafeArea(edges: .bottom)
-                .transition(.move(edge: .bottom).combined(with: .opacity))
-            }
+    var icon: String {
+        switch self {
+        case .activities: return "figure.hiking"
+        case .food:       return "fork.knife"
+        case .nature:     return "leaf"
         }
-        .navigationBarBackButtonHidden(true)
-    }
-
-    private var titleView: some View {
-        HStack(spacing: 0) {
-            Text("You're in ")
-                .foregroundColor(.black)
-
-            Text("Ubud")
-                .foregroundColor(.teal)
-        }
-        .font(.system(size: 34, weight: .bold))
-        .lineLimit(1)
-        .minimumScaleFactor(0.72)
-        .padding(.top, 8)
-        .shadow(color: .white.opacity(0.85), radius: 16, x: 0, y: 8)
-    }
-
-    private var filterButton: some View {
-        Button {
-            withAnimation(.spring(response: 0.28, dampingFraction: 0.82)) {
-                showsFilter.toggle()
-            }
-        } label: {
-            Image(systemName: "slider.horizontal.3")
-                .font(.system(size: 18, weight: .semibold))
-                .foregroundColor(.black)
-                .frame(width: 48, height: 48)
-                .background(.white.opacity(0.92), in: Circle())
-                .shadow(color: .black.opacity(0.08), radius: 20, x: 0, y: 10)
-        }
-        .buttonStyle(.plain)
-    }
-
-    private var filterMenu: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            Button {
-                withAnimation(.spring(response: 0.28, dampingFraction: 0.86)) {
-                    selectedCategory = nil
-                    showsFilter = false
-                }
-            } label: {
-                filterRow("all", isSelected: selectedCategory == nil)
-            }
-
-            ForEach(TravelSpotCategory.allCases) { category in
-                Button {
-                    withAnimation(.spring(response: 0.28, dampingFraction: 0.86)) {
-                        selectedCategory = category
-                        showsFilter = false
-                    }
-                } label: {
-                    filterRow(category.rawValue, isSelected: selectedCategory == category)
-                }
-            }
-        }
-        .buttonStyle(.plain)
-        .padding(.vertical, 10)
-        .frame(width: 188, alignment: .leading)
-        .background(.white.opacity(0.96), in: RoundedRectangle(cornerRadius: 22, style: .continuous))
-        .shadow(color: .black.opacity(0.12), radius: 28, x: 0, y: 16)
-    }
-
-    private func filterRow(_ title: String, isSelected: Bool) -> some View {
-        HStack {
-            Text(title)
-                .font(.system(size: 18, weight: isSelected ? .semibold : .regular))
-                .foregroundColor(isSelected ? .teal : .black)
-
-            Spacer()
-        }
-        .frame(height: 44)
-        .padding(.horizontal, 24)
-        .contentShape(Rectangle())
     }
 }
 
-private struct SpotMapMarker: View {
-    let spot: TravelSpot
+// da dummy
+extension PlaceAnnotation {
+    static let sampleData: [PlaceAnnotation] = [
+        PlaceAnnotation(
+            name: "Ubud Monkey Forest",
+            address: "Jl. Monkey Forest, Ubud, Kecamatan Ubud, Kabupaten Gianyar, Bali 80571, Indonesia",
+            description: "The sanctuary is a popular tourist attraction. It includes numerous species of plants and trees as well as three temples and numerous visitor facilities. The forest lies within the village of Padangtegal and is managed by Mandala Suci Wenara Wana Management.",
+            coordinate: CLLocationCoordinate2D(latitude: -8.5195, longitude: 115.2622),
+            category: .nature,
+            imageName: ["monkey-forest"]
+        ),
+        PlaceAnnotation(
+            name: "Tegallalang Rice Terraces",
+            address: "Tegallalang, Kecamatan Tegallalang, Kabupaten Gianyar, Bali, Indonesia",
+            description: "Iconic terraced rice paddies carved into the hillsides north of Ubud, maintained by a traditional Balinese cooperative irrigation system known as subak, a UNESCO-listed cultural landscape.",
+            coordinate: CLLocationCoordinate2D(latitude: -8.4394, longitude: 115.2799),
+            category: .nature,
+            imageName: ["rice-field"]
+        ),
+        PlaceAnnotation(
+            name: "Apple Developer Academy",
+            address: "Park23 Creative Hub, Jl. Kediri 1st floor, Tuban, Kuta, Badung Regency, Bali 80361",
+            description: "A world-class coding and design academy empowering students to build apps for the Apple ecosystem.",
+            coordinate: CLLocationCoordinate2D(latitude: -8.6259257, longitude: 115.1576691),
+            category: .activities,
+            imageName: ["apple-dev"]
+        )
+    ]
+}
+
+struct ThumbnailAnnotationView: View {
+    let imageName: String
     let isSelected: Bool
 
-    var body: some View {
-        VStack(spacing: -2) {
-            SpotImageView(url: spot.imageURL, category: spot.category)
-                .frame(width: 78, height: 78)
-                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .stroke(.white, lineWidth: 3)
-                )
-
-            PinTail()
-                .fill(.white)
-                .frame(width: 26, height: 18)
-        }
-        .shadow(color: .black.opacity(isSelected ? 0.24 : 0.14), radius: isSelected ? 18 : 12, x: 0, y: 8)
-        .scaleEffect(isSelected ? 1.08 : 1)
-    }
-}
-
-private struct SpotDetailSheet: View {
-    let spot: TravelSpot
+    private let size: CGFloat = 56
 
     var body: some View {
-        VStack(spacing: 16) {
-            Capsule()
-                .fill(Color.black.opacity(0.16))
-                .frame(width: 44, height: 4)
-                .padding(.top, 8)
+        VStack(spacing: 0) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 10)
+                    .fill(Color.white)
+                    .shadow(color: .black.opacity(isSelected ? 0.35 : 0.2),
+                            radius: isSelected ? 8 : 4, x: 0, y: 2)
 
-            VStack(spacing: 4) {
-                Text(spot.name)
-                    .font(.system(size: 18, weight: .bold))
-                    .foregroundColor(.black)
-                    .multilineTextAlignment(.center)
-
-                Text(spot.address)
-                    .font(.system(size: 13))
-                    .foregroundColor(.black.opacity(0.54))
-                    .multilineTextAlignment(.center)
-                    .lineLimit(2)
-                    .padding(.horizontal, 24)
-            }
-
-            SpotImageView(url: spot.imageURL, category: spot.category)
-                .frame(height: 244)
-                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-                .padding(.horizontal, 16)
-
-            HStack(spacing: 12) {
-                Capsule()
-                    .fill(Color.teal)
-                    .frame(width: 62, height: 3)
-                Capsule()
-                    .fill(Color.black.opacity(0.2))
-                    .frame(width: 62, height: 3)
-                Capsule()
-                    .fill(Color.black.opacity(0.2))
-                    .frame(width: 62, height: 3)
-            }
-
-            Text(spot.description)
-                .font(.system(size: 14))
-                .foregroundColor(.black)
-                .lineSpacing(2)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, 16)
-                .padding(.bottom, 34)
-        }
-        .frame(maxWidth: .infinity)
-        .background(.white, in: RoundedRectangle(cornerRadius: 30, style: .continuous))
-        .shadow(color: .black.opacity(0.14), radius: 28, x: 0, y: -12)
-    }
-}
-
-private struct SpotImageView: View {
-    let url: URL
-    let category: TravelSpotCategory
-
-    var body: some View {
-        AsyncImage(url: url) { phase in
-            switch phase {
-            case .success(let image):
-                image
+                Image(imageName)
                     .resizable()
                     .scaledToFill()
-            case .failure(_):
-                fallback
-            case .empty:
-                fallback
-                    .overlay {
-                        ProgressView()
-                            .tint(.white)
-                    }
-            @unknown default:
-                fallback
+                    .padding(4)
+                    .foregroundStyle(AppColors.accent)
             }
-        }
-    }
+            .frame(width: size, height: size)
+            .scaleEffect(isSelected ? 1.15 : 1.0)
+            .animation(.spring(response: 0.3, dampingFraction: 0.6), value: isSelected)
 
-    private var fallback: some View {
-        ZStack {
-            LinearGradient(
-                colors: fallbackColors,
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-
-            Image(systemName: fallbackSymbol)
-                .font(.system(size: 28, weight: .semibold))
-                .foregroundColor(.white)
-        }
-    }
-
-    private var fallbackColors: [Color] {
-        switch category {
-        case .activities:
-            return [Color(red: 0.04, green: 0.55, blue: 0.64), Color(red: 0.94, green: 0.45, blue: 0.28)]
-        case .food:
-            return [Color(red: 0.86, green: 0.27, blue: 0.22), Color(red: 0.97, green: 0.74, blue: 0.33)]
-        case .nature:
-            return [Color(red: 0.18, green: 0.48, blue: 0.34), Color(red: 0.69, green: 0.78, blue: 0.54)]
-        }
-    }
-
-    private var fallbackSymbol: String {
-        switch category {
-        case .activities:
-            return "sparkles"
-        case .food:
-            return "fork.knife"
-        case .nature:
-            return "leaf.fill"
+            Triangle()
+                .fill(Color.white)
+                .frame(width: 14, height: 8)
+                .shadow(color: .black.opacity(0.1), radius: 2, x: 0, y: 1)
         }
     }
 }
 
-private struct PinTail: Shape {
+struct Triangle: Shape {
     func path(in rect: CGRect) -> Path {
         var path = Path()
         path.move(to: CGPoint(x: rect.midX, y: rect.maxY))
@@ -327,8 +105,255 @@ private struct PinTail: Shape {
     }
 }
 
-struct MainMapView_Previews: PreviewProvider {
-    static var previews: some View {
-        MainMapView()
+struct PlaceholderImage: View {
+    let imageName: String
+    var body: some View {
+        ZStack {
+            Color(UIColor.secondarySystemBackground)
+            Image(imageName)
+                .resizable()
+                .scaledToFill()
+                .foregroundStyle(AppColors.accent.opacity(0.6))
+        }
     }
+}
+
+struct PlaceDetailSheet: View {
+    let place: PlaceAnnotation
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Capsule()
+                .fill(Color(UIColor.separator))
+                .frame(width: 36, height: 4)
+                .frame(maxWidth: .infinity)
+                .padding(.top, 10)
+                .padding(.bottom, 16)
+
+            ScrollView(showsIndicators: false) {
+                VStack(alignment: .leading, spacing: 16) {
+
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text(place.name)
+                            .font(.title)
+                            .fontWeight(.bold)
+                            .foregroundStyle(AppColors.primaryText)
+
+                        Text(place.address)
+                            .font(.caption)
+                            .foregroundStyle(AppColors.secondaryText)
+                            .lineLimit(2)
+                    }
+                    .padding(.horizontal, 20)
+
+                    // category badge
+                    Label(place.category.rawValue.capitalized, systemImage: place.category.icon)
+                        .font(.caption)
+                        .fontWeight(.medium)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 5)
+                        .background(AppColors.accent.opacity(0.12))
+                        .foregroundStyle(AppColors.accent)
+                        .clipShape(Capsule())
+                        .padding(.horizontal, 20)
+
+                    // for image
+                    TabView {
+                        ForEach(place.imageName, id: \.self) { sym in
+                            PlaceholderImage(imageName: sym)
+                                .clipShape(RoundedRectangle(cornerRadius: 14))
+                                .padding(.horizontal, 20)
+                        }
+                    }
+                    .tabViewStyle(.page(indexDisplayMode: .automatic))
+                    .frame(height: 200)
+
+                    // description text
+                    Text(place.description)
+                        .font(.body)
+                        .foregroundStyle(AppColors.primaryText.opacity(0.85))
+                        .lineSpacing(4)
+                        .padding(.horizontal, 20)
+                        .padding(.bottom, 32)
+                }
+            }
+        }
+        .background(Color(UIColor.systemBackground))
+    }
+}
+
+struct FilterMenuView: View {
+    @Binding var selectedFilter: PlaceCategory?
+    @Binding var isShowing: Bool
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            ForEach(PlaceCategory.allCases, id: \.self) { category in
+                Button {
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        selectedFilter = (selectedFilter == category) ? nil : category
+                        isShowing = false
+                    }
+                } label: {
+                    HStack(spacing: 10) {
+                        Image(systemName: category.icon)
+                            .frame(width: 20)
+                            .foregroundStyle(
+                                selectedFilter == category ? AppColors.accent : AppColors.secondaryText
+                            )
+                        Text(category.rawValue)
+                            .font(.body)
+                            .foregroundStyle(
+                                selectedFilter == category ? AppColors.accent : AppColors.primaryText
+                            )
+                        Spacer()
+                        if selectedFilter == category {
+                            Image(systemName: "checkmark")
+                                .font(.caption)
+                                .fontWeight(.semibold)
+                                .foregroundStyle(AppColors.accent)
+                        }
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 12)
+                }
+
+                if category != PlaceCategory.allCases.last {
+                    Divider().padding(.horizontal, 8)
+                }
+            }
+        }
+        .background(
+            RoundedRectangle(cornerRadius: 14)
+                .fill(Color(UIColor.systemBackground))
+                .shadow(color: .black.opacity(0.18), radius: 16, x: 0, y: 4)
+        )
+        .frame(width: 180)
+    }
+}
+
+struct MainMapView: View {
+    @State private var region = MKCoordinateRegion(
+        center: CLLocationCoordinate2D(latitude: -8.5069, longitude: 115.2624),
+        span: MKCoordinateSpan(latitudeDelta: 0.07, longitudeDelta: 0.07)
+    )
+    @State private var selectedPlace: PlaceAnnotation? = nil
+    @State private var showFilterMenu = false
+    @State private var selectedFilter: PlaceCategory? = nil
+    @State private var locationName: String = UserDefaults.standard.string(forKey: "userCity") ?? "Ubud"
+
+    private var visibleAnnotations: [PlaceAnnotation] {
+        guard let filter = selectedFilter else { return PlaceAnnotation.sampleData }
+        return PlaceAnnotation.sampleData.filter { $0.category == filter }
+    }
+
+    var body: some View {
+        ZStack(alignment: .top) {
+    
+            Map(coordinateRegion: $region,
+                interactionModes: .all,
+                annotationItems: visibleAnnotations) { place in
+                MapAnnotation(coordinate: place.coordinate) {
+                    ThumbnailAnnotationView(
+                        imageName: place.imageName.first ?? "mappin",
+                        isSelected: selectedPlace?.id == place.id
+                    )
+                    .onTapGesture {
+                        withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) {
+                            selectedPlace = (selectedPlace?.id == place.id) ? nil : place
+                        }
+                    }
+                }
+            }
+            .ignoresSafeArea()
+            .onTapGesture {
+                withAnimation { selectedPlace = nil }
+            }
+
+            VStack(spacing: 0) {
+                headerOverlay
+                Spacer()
+            }
+
+            if showFilterMenu {
+                VStack {
+                    HStack {
+                        Spacer()
+                        FilterMenuView(selectedFilter: $selectedFilter, isShowing: $showFilterMenu)
+                            .padding(.top, 72)
+                            .padding(.trailing, 16)
+                    }
+                    Spacer()
+                }
+                .transition(.opacity.combined(with: .scale(scale: 0.9, anchor: .topTrailing)))
+                .zIndex(10)
+                .onTapGesture { withAnimation { showFilterMenu = false } }
+            }
+        }
+
+        .sheet(item: $selectedPlace) { place in
+            PlaceDetailSheet(place: place)
+                .presentationDetents([.medium, .large])
+                .presentationDragIndicator(.hidden)
+                .presentationCornerRadius(24)
+        }
+        .animation(.easeInOut(duration: 0.25), value: showFilterMenu)
+    }
+
+
+    private var headerOverlay: some View {
+        HStack(alignment: .center) {
+            HStack(spacing: 0) {
+                Text("You're in ")
+                    .font(.title)
+                    .fontWeight(.semibold)
+                    .foregroundStyle(AppColors.primaryText)
+                Text(locationName)
+                    .font(.title)
+                    .fontWeight(.semibold)
+                    .foregroundStyle(AppColors.accent)
+            }
+
+            Spacer()
+
+            Button {
+                withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                    showFilterMenu.toggle()
+                    if showFilterMenu { selectedPlace = nil }
+                }
+            } label: {
+                ZStack {
+                    Circle()
+                        .fill(Color(UIColor.systemBackground).opacity(0.9))
+                        .frame(width: 40, height: 40)
+                        .shadow(color: .black.opacity(0.12), radius: 6, x: 0, y: 2)
+
+                    Image(systemName: "slider.horizontal.3")
+                        .font(.system(size: 16, weight: .medium))
+                        .foregroundStyle(selectedFilter != nil ? AppColors.accent : AppColors.primaryText)
+                }
+            }
+            .overlay(alignment: .topTrailing) {
+                if selectedFilter != nil {
+                    Circle()
+                        .fill(AppColors.accent)
+                        .frame(width: 8, height: 8)
+                        .offset(x: 2, y: -2)
+                }
+            }
+        }
+        .padding(.horizontal, 20)
+        .padding(.top, 12)
+        .padding(.bottom, 14)
+        .background(
+            Color(UIColor.systemBackground)
+                .opacity(0.88)
+                .background(.ultraThinMaterial)
+                .ignoresSafeArea(edges: .top)
+        )
+    }
+}
+
+#Preview {
+    MainMapView()
 }
