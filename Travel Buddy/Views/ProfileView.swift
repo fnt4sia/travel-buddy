@@ -29,35 +29,6 @@ struct ProfileView: View {
                     )
                 )
 
-            HStack(alignment: .top) {
-                Button {
-                } label: {
-                    Image(systemName: "chevron.left")
-                        .font(.system(size: 26, weight: .semibold))
-                        .foregroundColor(.black.opacity(0.72))
-                        .frame(width: 64, height: 64)
-                        .background(.white.opacity(0.7), in: Circle())
-                        .overlay {
-                            Circle()
-                                .stroke(.white, lineWidth: 1)
-                        }
-                }
-                .buttonStyle(.plain)
-
-                Spacer()
-
-                Button("Edit") {
-                }
-                .font(.system(size: 21, weight: .semibold))
-                .foregroundColor(.white)
-                .padding(.horizontal, 15)
-                .padding(.vertical, 8)
-                .background(Color(red: 0.02, green: 0.39, blue: 0.48), in: Capsule())
-                .padding(.top, 20)
-            }
-            .padding(.horizontal, 20)
-            .padding(.top, 74)
-            .frame(maxHeight: .infinity, alignment: .top)
 
             HStack(alignment: .bottom, spacing: 14) {
                 defaultAvatar
