@@ -22,6 +22,7 @@ struct UnifiedOnboardingView: View {
     @State private var firstName = ""
     @State private var city: String?
     @State private var userLocation: CLLocation?
+    @AppStorage("hasOnboarded") private var hasOnboarded = false
     @StateObject private var locationViewModel = LocationPermissionViewModel()
 
 
@@ -270,12 +271,11 @@ struct UnifiedOnboardingView: View {
 
     private var locationConfirmedFormContent: some View {
         Button(action: {
-
             if let detectedCity = city {
                 UserDefaults.standard.set(detectedCity, forKey: "userCity")
             }
 
-            UserDefaults.standard.set(true, forKey: "hasOnboarded")
+            hasOnboarded = true
         }) {
             Text("Start Exploring")
                 .fontWeight(.semibold)
