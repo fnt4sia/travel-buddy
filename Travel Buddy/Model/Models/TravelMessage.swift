@@ -1,42 +1,27 @@
 import Foundation
 
-struct TravelParticipant: Identifiable {
-    let id = UUID()
-    let name: String
-    let initial: String
-    let colorHex: String
-}
-
-struct TravelMessage: Identifiable {
-    let id = UUID()
-    let placeName: String
-    let dateText: String
+struct ChatMessage: Identifiable {
+    let id: UUID
+    let groupID: UUID
     let senderName: String
-    let preview: String
-    let participants: [TravelParticipant]
+    let body: String
+    let sentAt: Date
 
-    static let samples: [TravelMessage] = [
-        TravelMessage(
-            placeName: "Monkey Forest Ubud",
-            dateText: "27th July, 2026",
-            senderName: "Deco",
-            preview: "Hi, My name is Deco. I am from Indonesia. Nice to meet you all",
-            participants: [
-                TravelParticipant(name: "Deco", initial: "D", colorHex: "78A7B7"),
-                TravelParticipant(name: "Ayu", initial: "A", colorHex: "E8A75E"),
-                TravelParticipant(name: "Nadia", initial: "N", colorHex: "E8D2C8")
-            ]
-        ),
-        TravelMessage(
-            placeName: "Imadji Coffee Kuta",
-            dateText: "28th July, 2026",
-            senderName: "Maria",
-            preview: "Hi, My name is Maria. I am from Malaysia. Nice to meet you all",
-            participants: [
-                TravelParticipant(name: "Maria", initial: "M", colorHex: "C9804B"),
-                TravelParticipant(name: "Lina", initial: "L", colorHex: "E8B86F"),
-                TravelParticipant(name: "Sari", initial: "S", colorHex: "EDDED1")
-            ]
-        )
-    ]
+    init(
+        id: UUID = UUID(),
+        groupID: UUID,
+        senderName: String,
+        body: String,
+        sentAt: Date = Date()
+    ) {
+        self.id = id
+        self.groupID = groupID
+        self.senderName = senderName
+        self.body = body
+        self.sentAt = sentAt
+    }
+
+    var senderInitial: String {
+        String(senderName.prefix(1)).uppercased()
+    }
 }

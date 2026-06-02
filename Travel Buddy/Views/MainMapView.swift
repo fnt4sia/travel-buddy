@@ -120,9 +120,10 @@ struct RemotePlacePhoto: View {
 
 struct PlaceDetailSheet: View {
     let place: PlaceAnnotation
+    let onOpenChat: (UUID) -> Void
     @StateObject private var groupsViewModel = GroupsViewModel()
     @State private var showDatePicker = false
-    @State private var searchPerformed = false
+    @State private var showCreateMeetup = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -221,15 +222,10 @@ struct PlaceDetailSheet: View {
                                     .cornerRadius(20)
                                 }
 
-                                Button(action: {
-                                    searchPerformed = true
-                                    groupsViewModel.searchGroups(
-                                        for: groupsViewModel.selectedDate
-                                    )
-                                }) {
+                                Button(action: { showCreateMeetup = true }) {
                                     HStack(spacing: 8) {
-                                        Image(systemName: "magnifyingglass")
-                                        Text("Search")
+                                        Image(systemName: "plus")
+                                        Text("Create")
                                     }
                                     .font(.body)
                                     .fontWeight(.semibold)
@@ -244,56 +240,43 @@ struct PlaceDetailSheet: View {
                         .padding(.horizontal, 20)
 
                         // Groups List
-                        if searchPerformed {
-                            if groupsViewModel.availableGroups.isEmpty {
-                                VStack(spacing: 8) {
-                                    Image(systemName: "magnifyingglass")
-                                        .font(.system(size: 20))
-                                        .foregroundStyle(
-                                            AppColors.secondaryText
-                                        )
-                                    Text("No groups available")
-                                        .font(.caption)
-                                        .foregroundStyle(
-                                            AppColors.secondaryText
-                                        )
-                                }
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 20)
-                            } else {
-                                VStack(spacing: 12) {
-                                    ForEach(groupsViewModel.availableGroups) {
-                                        group in
-                                        GroupRowView(
-                                            group: group,
-                                            hasJoined:
-                                                groupsViewModel.hasJoinedGroup(
-                                                    group
-                                                ),
-                                            onJoinTapped: {
-                                                groupsViewModel.joinGroup(group)
-                                            },
-                                            onLeaveTapped: {
-                                                groupsViewModel.leaveGroup(
-                                                    group
-                                                )
-                                            }
-                                        )
-                                    }
-                                }
-                                .padding(.horizontal, 20)
-                            }
-                        } else {
+                        if groupsViewModel.availableGroups.isEmpty {
                             VStack(spacing: 8) {
-                                Image(systemName: "calendar.badge.plus")
+                                Image(systemName: "calendar.badge.exclamationmark")
                                     .font(.system(size: 20))
-                                    .foregroundStyle(AppColors.accent)
-                                Text("Select a date to see groups")
+                                    .foregroundStyle(
+                                        AppColors.secondaryText
+                                    )
+                                Text("No meetups available")
                                     .font(.caption)
-                                    .foregroundStyle(AppColors.secondaryText)
+                                    .foregroundStyle(
+                                        AppColors.secondaryText
+                                    )
                             }
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 20)
+                        } else {
+                            VStack(spacing: 12) {
+                                ForEach(groupsViewModel.availableGroups) {
+                                    group in
+                                    GroupRowView(
+                                        group: group,
+                                        hasJoined:
+                                            groupsViewModel.hasJoinedGroup(
+                                                group
+                                            ),
+                                        onJoinTapped: {
+                                            navigateToChat(afterJoining: group)
+                                        },
+                                        onLeaveTapped: {
+                                            groupsViewModel.leaveGroup(
+                                                group
+                                            )
+                                        }
+                                    )
+                                }
+                            }
+                            .padding(.horizontal, 20)
                         }
                     }
                     .padding(.vertical, 16)
@@ -302,6 +285,9 @@ struct PlaceDetailSheet: View {
             }
         }
         .background(Color(UIColor.systemBackground))
+        .onAppear {
+            groupsViewModel.refreshAvailableGroups()
+        }
         .sheet(isPresented: $showDatePicker) {
             DatePickerSheetContent(
                 isPresented: $showDatePicker,
@@ -310,12 +296,39 @@ struct PlaceDetailSheet: View {
             .presentationDetents([.height(500)])
             .presentationDragIndicator(.visible)
         }
-        .sheet(isPresented: $groupsViewModel.showGroupConfirmation) {
-            if let group = groupsViewModel.selectedGroup {
-                GroupConfirmationView(group: group)
-                    .presentationDetents([.large])
-                    .presentationDragIndicator(.hidden)
-            }
+        .sheet(isPresented: $showCreateMeetup) {
+            CreateMeetupSheet(
+                selectedDate: groupsViewModel.selectedDate,
+                defaultName: "\(place.name) Meetup",
+                defaultAddress: place.address,
+                onCreate: { name, address, date, meetingTime, maxCapacity, price in
+                    if let createdGroup = groupsViewModel.createGroup(
+                        name: name,
+                        address: address,
+                        date: date,
+                        meetingTime: meetingTime,
+                        maxCapacity: maxCapacity,
+                        price: price
+                    ) {
+                        onOpenChat(createdGroup.id)
+                    }
+                }
+            )
+            .presentationDetents([.large])
+            .presentationDragIndicator(.visible)
+        }
+        .alert(item: $groupsViewModel.meetupConflict) { conflict in
+            Alert(
+                title: Text("Already joined here"),
+                message: Text(conflict.message),
+                dismissButton: .default(Text("OK"))
+            )
+        }
+    }
+
+    private func navigateToChat(afterJoining group: ActivityGroup) {
+        if let joinedGroup = groupsViewModel.joinGroup(group) {
+            onOpenChat(joinedGroup.id)
         }
     }
 }
@@ -378,6 +391,8 @@ struct FilterMenuView: View {
 // MARK: - Main map
 
 struct MainMapView: View {
+    var onOpenChat: (UUID) -> Void = { _ in }
+
     @StateObject private var viewModel = ExploreViewModel()
 
     @State private var selectedPlace: PlaceAnnotation? = nil
@@ -463,7 +478,10 @@ struct MainMapView: View {
             Task { await viewModel.loadPlaces(filter: newValue) }
         }
         .sheet(item: $selectedPlace) { place in
-            PlaceDetailSheet(place: place)
+            PlaceDetailSheet(
+                place: place,
+                onOpenChat: openChatFromPlaceSheet
+            )
                 .presentationDetents([.medium, .large])
                 .presentationDragIndicator(.hidden)
                 .presentationCornerRadius(24)
@@ -579,6 +597,14 @@ struct MainMapView: View {
                     .font(.system(size: 17, weight: .medium))
                     .foregroundStyle(AppColors.accent)
             }
+        }
+    }
+
+    private func openChatFromPlaceSheet(_ groupID: UUID) {
+        selectedPlace = nil
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+            onOpenChat(groupID)
         }
     }
 }
