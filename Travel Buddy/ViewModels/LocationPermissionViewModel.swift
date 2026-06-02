@@ -19,7 +19,11 @@ class LocationPermissionViewModel: ObservableObject {
     private let locationService: LocationService
     private var resolvedLocation: CLLocation?
 
-    init(locationService: LocationService = .shared) {
+    convenience init() {
+        self.init(locationService: LocationService.shared)
+    }
+
+    init(locationService: LocationService) {
         self.locationService = locationService
     }
 
