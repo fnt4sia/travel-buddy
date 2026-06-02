@@ -43,7 +43,7 @@ class GlobeView: SCNView {
         let ambientLight = SCNNode()
         ambientLight.light = SCNLight()
         ambientLight.light?.type = .ambient
-        ambientLight.light?.color = UIColor(white: 0.3, alpha: 1)
+        ambientLight.light?.color = UIColor(white: 0.5, alpha: 1)
         scene.rootNode.addChildNode(ambientLight)
         
         // Directional light
@@ -91,32 +91,34 @@ class GlobeView: SCNView {
         
         let lat = Float(location.coordinate.latitude)
         let lon = Float(location.coordinate.longitude)
-        
-        let targetYaw = -lon * (.pi / 180) + 5.9
-        let targetPitch = lat * (.pi / 180)
+
+        let latRad = degreesToRadians(lat)
+        let lonRad = degreesToRadians(lon)
+        let targetYaw = -lonRad
+        let targetPitch = -latRad
         
         SCNTransaction.begin()
         SCNTransaction.animationDuration = 2.0
         SCNTransaction.animationTimingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
         SCNTransaction.completionBlock = {
-            self.dropPinWithRotation(latitude: lat, longitude: lon, yaw: targetYaw, pitch: targetPitch)
+            self.dropPinWithRotation(latitude: lat, longitude: lon)
             completion?()
         }
         
-        earthNode.eulerAngles = SCNVector3(targetPitch * 0.3, targetYaw, 0)
+        earthNode.eulerAngles = SCNVector3(targetPitch, targetYaw, 0)
         SCNTransaction.commit()
     }
     
     // MARK: - Drop Pin at coordinates with rotation
-    private func dropPinWithRotation(latitude: Float, longitude: Float, yaw: Float, pitch: Float) {
-        let latRad = latitude * (.pi / 180)
-        let lonRad = longitude * (.pi / 180)
+    private func dropPinWithRotation(latitude: Float, longitude: Float) {
+        let latRad = degreesToRadians(latitude)
+        let lonRad = degreesToRadians(longitude)
         let radius: Float = 1
         
         // Calculate position on earth in local coordinates
-        let x = radius * cos(latRad) * cos(lonRad)
+        let x = -radius * cos(latRad) * sin(lonRad)
         let y = radius * sin(latRad)
-        let z = radius * cos(latRad) * sin(lonRad)
+        let z = radius * cos(latRad) * cos(lonRad)
         
         let pinPosition = SCNVector3(x, y, z)
         print("[DEBUG] Pin local position: \(pinPosition)")
@@ -188,5 +190,9 @@ class GlobeView: SCNView {
         guard let output = colorMatrix.outputImage,
               let cgImage = context.createCGImage(output, from: output.extent) else { return nil }
         return UIImage(cgImage: cgImage)
+    }
+
+    private func degreesToRadians(_ degrees: Float) -> Float {
+        degrees * (.pi / 180)
     }
 }
