@@ -17,7 +17,6 @@ struct TravelSpot: Identifiable {
     let coordinate: CLLocationCoordinate2D
     let imageURL: URL
     let description: String
-
     static let ubudSamples: [TravelSpot] = [
         TravelSpot(
             name: "Ubud Monkey Forest",
