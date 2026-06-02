@@ -30,7 +30,7 @@ struct ProfileDetailView: View {
                     Spacer()
                     
                     Text(profile.countryFlag)
-                        .font(.system(size: 24))
+                        .font(.system(size: 32))
                 }
                 .padding(20)
                 
@@ -90,8 +90,9 @@ struct ProfileDetailView: View {
                                 }
                             }
                         }
+                        .frame(maxWidth: .infinity, alignment: .leading)
                         
-                        // Languages and Countries Section
+                        // Languages Section
                         VStack(alignment: .leading, spacing: 12) {
                             Text("Countries")
                                 .font(.headline)
@@ -111,7 +112,7 @@ struct ProfileDetailView: View {
                                 }
                             }
                         }
-                        
+                        .frame(maxWidth: .infinity, alignment: .leading)
                         Spacer()
                             .frame(height: 20)
                     }
