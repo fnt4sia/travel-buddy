@@ -1,141 +1,163 @@
 import SwiftUI
 
 struct ProfileView: View {
+    @StateObject private var viewModel: ProfileViewModel
+
+    init(viewModel: ProfileViewModel = ProfileViewModel()) {
+        _viewModel = StateObject(wrappedValue: viewModel)
+    }
+
     var body: some View {
         ScrollView(showsIndicators: false) {
-            VStack(alignment: .leading, spacing: 0) {
-                profileHeader
+            VStack(alignment: .leading, spacing: ProfileMetrics.Layout.sectionSpacing) {
+                header
                 aboutSection
-                    .padding(.top, 42)
-
-                Spacer(minLength: 120)
+                languageSection
+                interestSection
+                if viewModel.hasSocialMedia { socialMediaSection }
             }
+            .padding(.bottom, ProfileMetrics.Layout.bottomSafeInset)
         }
-        .background(Color.white)
+        .background(AppColors.background)
         .ignoresSafeArea(edges: .top)
     }
 
-    private var profileHeader: some View {
+    private var header: some View {
         ZStack(alignment: .bottomLeading) {
-            RoundedRectangle(cornerRadius: 0)
-                .fill(Color(red: 0.84, green: 0.84, blue: 0.84))
-                .frame(height: 270)
+            AppColors.coverBackground
+                .frame(height: ProfileMetrics.Header.height)
                 .clipShape(
                     UnevenRoundedRectangle(
-                        topLeadingRadius: 0,
-                        bottomLeadingRadius: 18,
-                        bottomTrailingRadius: 18,
-                        topTrailingRadius: 0
+                        bottomLeadingRadius: ProfileMetrics.Header.cornerRadius,
+                        bottomTrailingRadius: ProfileMetrics.Header.cornerRadius
                     )
                 )
 
-            HStack(alignment: .top) {
-                Button {
-                } label: {
-                    Image(systemName: "chevron.left")
-                        .font(.system(size: 26, weight: .semibold))
-                        .foregroundColor(.black.opacity(0.72))
-                        .frame(width: 64, height: 64)
-                        .background(.white.opacity(0.7), in: Circle())
-                        .overlay {
-                            Circle()
-                                .stroke(.white, lineWidth: 1)
-                        }
-                }
-                .buttonStyle(.plain)
+            headerControls
+                .padding(.horizontal, ProfileMetrics.Layout.screenPadding)
+                .padding(.top, 74)
+                .frame(maxHeight: .infinity, alignment: .top)
 
-                Spacer()
 
-                Button("Edit") {
-                }
-                .font(.system(size: 21, weight: .semibold))
-                .foregroundColor(.white)
-                .padding(.horizontal, 15)
-                .padding(.vertical, 8)
-                .background(Color(red: 0.02, green: 0.39, blue: 0.48), in: Capsule())
-                .padding(.top, 20)
-            }
-            .padding(.horizontal, 20)
-            .padding(.top, 74)
-            .frame(maxHeight: .infinity, alignment: .top)
-
-            HStack(alignment: .bottom, spacing: 14) {
-                defaultAvatar
-
-                VStack(alignment: .leading, spacing: 6) {
-                    HStack(alignment: .firstTextBaseline, spacing: 5) {
-                        Text("Fitra")
-                            .font(.system(size: 26, weight: .bold))
-                            .foregroundColor(.black)
-
-                        Text("• 25")
-                            .font(.system(size: 16, weight: .semibold))
-                            .foregroundColor(.black.opacity(0.34))
-                    }
-
-                    Text("I love 67")
-                        .font(.system(size: 18))
-                        .foregroundColor(.black.opacity(0.66))
-                }
-                .padding(.bottom, 12)
-
-                Spacer()
-
-                VStack(spacing: 3) {
-                    Text("")
-                        .font(.system(size: 27))
-                    Text("ID")
-                        .font(.system(size: 13, weight: .medium))
-                        .foregroundColor(.black)
-                }
-                .padding(.bottom, 17)
-            }
-            .padding(.horizontal, 16)
-            .offset(y: 75)
+            identityRow
+                .padding(.horizontal, 16)
+                .offset(y: ProfileMetrics.Header.infoOffset)
         }
-        .padding(.bottom, 75)
+        .padding(.bottom, ProfileMetrics.Header.infoOffset)
     }
 
-    private var defaultAvatar: some View {
-        RoundedRectangle(cornerRadius: 24, style: .continuous)
-            .fill(Color(red: 0.9, green: 0.91, blue: 0.92))
-            .frame(width: 148, height: 148)
-            .overlay {
-                Image(systemName: "person.crop.square.fill")
-                    .font(.system(size: 86))
-                    .foregroundColor(.black.opacity(0.34))
+    private var headerControls: some View {
+        HStack {
+            Button(action: viewModel.backTapped) {
+                Image(systemName: "chevron.left")
+                    .font(.system(size: 24, weight: .semibold))
+                    .foregroundStyle(.black.opacity(0.72))
+                    .frame(width: ProfileMetrics.Header.backButtonSize,
+                           height: ProfileMetrics.Header.backButtonSize)
+                    .background(.white.opacity(0.7), in: Circle())
+                    .overlay { Circle().stroke(.white, lineWidth: 1) }
             }
-            .overlay {
-                RoundedRectangle(cornerRadius: 24, style: .continuous)
-                    .stroke(Color.white, lineWidth: 1)
+
+            Spacer()
+
+            Button("Edit", action: viewModel.editTapped)
+                .font(.system(size: 18, weight: .regular))
+                .foregroundStyle(.white)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 8)
+                .background(AppColors.brandTeal, in: Capsule())
+                .padding(.top, 6)
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var identityRow: some View {
+        HStack(alignment: .bottom, spacing: 12) {
+            ProfileAvatar(imageName: viewModel.profile.profileImageName)
+
+            VStack(alignment: .leading, spacing: 6) {
+                HStack(alignment: .firstTextBaseline, spacing: 5) {
+                    Text(viewModel.profile.name)
+                        .font(.system(size: ProfileMetrics.Font.name, weight: .bold))
+                        .foregroundStyle(AppColors.primaryText)
+
+                    Text(viewModel.ageText)
+                        .font(.system(size: ProfileMetrics.Font.age, weight: .semibold))
+                        .foregroundStyle(AppColors.secondaryText)
+                }
+
+                Text(viewModel.profile.bio)
+                    .font(.system(size: ProfileMetrics.Font.bio))
+                    .foregroundStyle(AppColors.secondaryText)
+                    .fixedSize(horizontal: false, vertical: true)
             }
-            .shadow(color: .black.opacity(0.1), radius: 12, x: 0, y: 8)
+            .padding(.top, 24)
+
+            Spacer(minLength: 8)
+
+            countryBadge
+                .padding(.bottom, 16)
+        }
+    }
+
+    private var countryBadge: some View {
+        VStack(spacing: 3) {
+            Text(viewModel.profile.languageFlag)
+                .font(.system(size: ProfileMetrics.Font.flagEmoji))
+            Text(viewModel.profile.countryCode)
+                .font(.system(size: ProfileMetrics.Font.countryCode, weight: .medium))
+                .foregroundStyle(AppColors.primaryText)
+        }
     }
 
     private var aboutSection: some View {
-        HStack(alignment: .top, spacing: 14) {
-            Image(systemName: "person.fill")
-                .font(.system(size: 26, weight: .semibold))
-                .foregroundColor(.black)
-                .frame(width: 34)
+        ProfileSection(icon: "person.fill", title: "About me") {
+            Text(viewModel.profile.aboutMe)
+                .font(.system(size: ProfileMetrics.Font.body))
+                .foregroundStyle(AppColors.secondaryText)
+                .lineSpacing(2)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(.horizontal, ProfileMetrics.Layout.screenPadding)
+    }
 
-            VStack(alignment: .leading, spacing: 8) {
-                Text("About me")
-                    .font(.system(size: 21, weight: .medium))
-                    .foregroundColor(.black)
-
-                Text("I love exploring new places, trying local food, and meeting new people along the way. Traveling makes me feel alive and gives me new perspectives about the world. Usually the one saying “let’s just go” when there’s an adventure involved. I enjoy nature, city walks, hidden cafes, and spontaneous plans.")
-                    .font(.system(size: 18))
-                    .foregroundColor(.black.opacity(0.66))
-                    .lineSpacing(1.5)
+    private var languageSection: some View {
+        ProfileSection(icon: "translate", title: "Language") {
+            FlowLayout {
+                ForEach(viewModel.profile.languages, id: \.self) { language in
+                    LanguageChip(language: language)
+                }
             }
         }
-        .padding(.horizontal, 24)
+        .padding(.horizontal, ProfileMetrics.Layout.screenPadding)
+    }
+
+    private var interestSection: some View {
+        ProfileSection(icon: "heart.circle.fill", title: "Interest") {
+            FlowLayout {
+                ForEach(viewModel.profile.interests, id: \.self) { interest in
+                    InterestChip(interest: interest)
+                }
+            }
+        }
+        .padding(.horizontal, ProfileMetrics.Layout.screenPadding)
+    }
+
+    private var socialMediaSection: some View {
+        ProfileSection(icon: "globe", title: "Social Media") {
+            VStack(alignment: .leading, spacing: 8) {
+                if let instagram = viewModel.instagramHandle {
+                    SocialMediaRow(platform: .instagram, handle: instagram)
+                }
+                if let twitter = viewModel.twitterHandle {
+                    SocialMediaRow(platform: .twitter, handle: twitter)
+                }
+            }
+        }
+        .padding(.horizontal, ProfileMetrics.Layout.screenPadding)
     }
 }
 
-struct ProfileView_Previews: PreviewProvider {
-    static var previews: some View {
-        ProfileView()
-    }
+#Preview {
+    ProfileView()
 }

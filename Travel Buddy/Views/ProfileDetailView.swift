@@ -29,7 +29,7 @@ struct ProfileDetailView: View {
                     
                     Spacer()
                     
-                    Text(profile.countryFlag)
+                    Text(profile.languageFlag)
                         .font(.system(size: 32))
                 }
                 .padding(20)
