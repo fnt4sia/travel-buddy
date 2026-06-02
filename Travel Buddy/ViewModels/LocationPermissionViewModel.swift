@@ -31,6 +31,10 @@ class LocationPermissionViewModel: ObservableObject {
             resolvedLocation = location
             self.location = location
 
+            // Persist coordinates so the map can center on the user right away.
+            UserDefaults.standard.set(location.coordinate.latitude, forKey: "userLat")
+            UserDefaults.standard.set(location.coordinate.longitude, forKey: "userLng")
+
             let geocodedCity = await GeocodingService.cityName(for: location)
             print("[DEBUG] Geocoded city: \(geocodedCity)")
             city = geocodedCity
