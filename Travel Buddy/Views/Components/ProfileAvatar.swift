@@ -5,7 +5,6 @@
 //  Created by Balqis Putri Muharda on 02/06/26.
 //
 
-
 import SwiftUI
 
 struct ProfileAvatar: View {
@@ -34,7 +33,7 @@ struct ProfileAvatar: View {
             AppColors.avatarPlaceholder
                 .overlay {
                     Image(systemName: "person.crop.square.fill")
-                        .font(.system(size: size * 0.58))
+                        .font(.system(size: size * 1))
                         .foregroundStyle(.black.opacity(0.34))
                 }
         }

@@ -33,7 +33,7 @@ struct ProfileSection<Content: View>: View {
 }
 
 #Preview {
-    ProfileSection(icon: "heart.fill", title: "Interest") {
+    ProfileSection(icon: "heart.circle.fill", title: "Interest") {
         FlowLayout {
             InterestChip(interest: "Photography")
             InterestChip(interest: "Museums")
