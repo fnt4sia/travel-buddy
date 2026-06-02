@@ -144,7 +144,7 @@ struct ProfileView: View {
     }
 
     private var socialMediaSection: some View {
-        ProfileSection(icon: "globe", title: "Social Media") {
+        ProfileSection(icon: "network", title: "Social Media") {
             VStack(alignment: .leading, spacing: 8) {
                 if let instagram = viewModel.instagramHandle {
                     SocialMediaRow(platform: .instagram, handle: instagram)
