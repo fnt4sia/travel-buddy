@@ -17,6 +17,7 @@ struct NameInputView: View {
             Color.white.ignoresSafeArea()
 
             GlobeRepresentable()
+                .equatable()
                 .ignoresSafeArea()
 
             VStack(alignment: .leading, spacing: 24) {
