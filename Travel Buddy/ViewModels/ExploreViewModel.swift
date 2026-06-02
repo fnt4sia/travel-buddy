@@ -29,9 +29,16 @@ final class ExploreViewModel: ObservableObject {
     // Ubud fallback (matches the app's original default) when nothing else is known.
     private static let fallbackCenter = CLLocationCoordinate2D(latitude: -8.5069, longitude: 115.2624)
 
+    convenience init() {
+        self.init(
+            placesService: PlacesService.shared,
+            locationService: LocationService.shared
+        )
+    }
+
     init(
-        placesService: PlacesService = .shared,
-        locationService: LocationService = .shared
+        placesService: PlacesService,
+        locationService: LocationService
     ) {
         self.placesService = placesService
         self.locationService = locationService

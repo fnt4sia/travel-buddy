@@ -41,15 +41,16 @@ enum MainTab: CaseIterable {
 
 struct MainTabView: View {
     @State private var selectedTab: MainTab = .explore
+    @State private var messagePath: [UUID] = []
 
     var body: some View {
         ZStack(alignment: .bottom) {
             Group {
                 switch selectedTab {
                 case .messages:
-                    MessagesView()
+                    MessagesView(chatPath: $messagePath)
                 case .explore:
-                    MainMapView()
+                    MainMapView(onOpenChat: openMessageRoom)
                 case .profile:
                     ProfileView()
                 }
@@ -57,10 +58,17 @@ struct MainTabView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
 
             MainTabBar(selectedTab: $selectedTab)
-                .padding(.horizontal, 28)
-                .padding(.bottom, 28)
+                .padding(.horizontal, 48)
+                .padding(.bottom, 16)
         }
         .ignoresSafeArea(.keyboard)
+    }
+
+    private func openMessageRoom(_ groupID: UUID) {
+        messagePath = [groupID]
+        withAnimation(.spring(response: 0.28, dampingFraction: 0.82)) {
+            selectedTab = .messages
+        }
     }
 }
 
@@ -80,11 +88,11 @@ private struct MainTabBar: View {
                 .buttonStyle(.plain)
             }
         }
-        .padding(4)
+        .padding(3)
         .frame(maxWidth: .infinity)
-        .frame(height: 72)
+        .frame(height: 54)
         .background(.white.opacity(0.92), in: Capsule())
-        .shadow(color: .black.opacity(0.12), radius: 24, x: 0, y: 14)
+        .shadow(color: .black.opacity(0.10), radius: 16, x: 0, y: 8)
     }
 }
 
@@ -93,12 +101,12 @@ private struct MainTabItem: View {
     let isSelected: Bool
 
     var body: some View {
-        VStack(spacing: 4) {
+        VStack(spacing: 2) {
             Image(systemName: tab.icon)
-                .font(.system(size: tab == .explore ? 29 : 26, weight: .semibold))
+                .font(.system(size: tab == .explore ? 22 : 20, weight: .semibold))
 
             Text(tab.title)
-                .font(.system(size: 12, weight: .bold))
+                .font(.system(size: 10, weight: .bold))
         }
         .foregroundColor(isSelected ? tab.tint : .black)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
