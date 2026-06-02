@@ -78,7 +78,8 @@ extension PlaceAnnotation {
 }
 
 struct ThumbnailAnnotationView: View {
-    let imageName: String
+    let photoURL: URL?
+    let category: PlaceCategory
     let isSelected: Bool
 
     private let size: CGFloat = 56
@@ -95,11 +96,9 @@ struct ThumbnailAnnotationView: View {
                         y: 2
                     )
 
-                Image(imageName)
-                    .resizable()
-                    .scaledToFill()
-                    .padding(4)
-                    .foregroundStyle(AppColors.accent)
+                photo
+                    .frame(width: size - 8, height: size - 8)
+                    .clipShape(RoundedRectangle(cornerRadius: 7))
             }
             .frame(width: size, height: size)
             .scaleEffect(isSelected ? 1.15 : 1.0)
@@ -114,6 +113,30 @@ struct ThumbnailAnnotationView: View {
                 .shadow(color: .black.opacity(0.1), radius: 2, x: 0, y: 1)
         }
     }
+
+    @ViewBuilder
+    private var photo: some View {
+        if let photoURL {
+            AsyncImage(url: photoURL) { phase in
+                switch phase {
+                case .success(let image):
+                    image.resizable().scaledToFill()
+                case .empty:
+                    ProgressView()
+                default:
+                    categoryIcon
+                }
+            }
+        } else {
+            categoryIcon
+        }
+    }
+
+    private var categoryIcon: some View {
+        Image(systemName: category.icon)
+            .font(.system(size: 22, weight: .medium))
+            .foregroundStyle(AppColors.accent)
+    }
 }
 
 struct Triangle: Shape {
@@ -127,18 +150,40 @@ struct Triangle: Shape {
     }
 }
 
-struct PlaceholderImage: View {
-    let imageName: String
+// MARK: - Remote photo for the detail sheet
+
+struct RemotePlacePhoto: View {
+    let url: URL?
+    let category: PlaceCategory
+
     var body: some View {
         ZStack {
             Color(UIColor.secondarySystemBackground)
-            Image(imageName)
-                .resizable()
-                .scaledToFill()
-                .foregroundStyle(AppColors.accent.opacity(0.6))
+            if let url {
+                AsyncImage(url: url) { phase in
+                    switch phase {
+                    case .success(let image):
+                        image.resizable().scaledToFill()
+                    case .empty:
+                        ProgressView()
+                    default:
+                        placeholder
+                    }
+                }
+            } else {
+                placeholder
+            }
         }
     }
+
+    private var placeholder: some View {
+        Image(systemName: category.icon)
+            .font(.system(size: 44))
+            .foregroundStyle(AppColors.accent.opacity(0.6))
+    }
 }
+
+// MARK: - Detail sheet
 
 struct PlaceDetailSheet: View {
     let place: PlaceAnnotation
@@ -193,15 +238,22 @@ struct PlaceDetailSheet: View {
                                 .padding(.horizontal, 20)
                         }
                     }
-                    .tabViewStyle(.page(indexDisplayMode: .automatic))
-                    .frame(height: 200)
+                    .padding(.horizontal, 20)
 
-                    // description text
-                    Text(place.description)
-                        .font(.body)
-                        .foregroundStyle(AppColors.primaryText.opacity(0.85))
-                        .lineSpacing(4)
+                    // photo
+                    RemotePlacePhoto(url: place.photoURL, category: place.category)
+                        .frame(height: 200)
+                        .clipShape(RoundedRectangle(cornerRadius: 14))
                         .padding(.horizontal, 20)
+
+                    // description text (editorial summary; may be empty)
+                    if !place.description.isEmpty {
+                        Text(place.description)
+                            .font(.body)
+                            .foregroundStyle(AppColors.primaryText.opacity(0.85))
+                            .lineSpacing(4)
+                            .padding(.horizontal, 20)
+                    }
 
                     // Available Meetups Section
                     VStack(alignment: .leading, spacing: 12) {
@@ -335,6 +387,8 @@ struct PlaceDetailSheet: View {
     }
 }
 
+// MARK: - Filter menu
+
 struct FilterMenuView: View {
     @Binding var selectedFilter: PlaceCategory?
     @Binding var isShowing: Bool
@@ -388,11 +442,11 @@ struct FilterMenuView: View {
     }
 }
 
+// MARK: - Main map
+
 struct MainMapView: View {
-    @State private var region = MKCoordinateRegion(
-        center: CLLocationCoordinate2D(latitude: -8.5069, longitude: 115.2624),
-        span: MKCoordinateSpan(latitudeDelta: 0.07, longitudeDelta: 0.07)
-    )
+    @StateObject private var viewModel = ExploreViewModel()
+
     @State private var selectedPlace: PlaceAnnotation? = nil
     @State private var showFilterMenu = false
     @State private var selectedFilter: PlaceCategory? = nil
@@ -429,6 +483,7 @@ struct MainMapView: View {
                     }
                 }
             }
+            .mapStyle(.standard)
             .ignoresSafeArea()
             .onTapGesture {
                 withAnimation { selectedPlace = nil }
@@ -436,6 +491,11 @@ struct MainMapView: View {
 
             VStack(spacing: 0) {
                 headerOverlay
+                if viewModel.isLoading {
+                    loadingPill
+                } else if let message = viewModel.errorMessage {
+                    messagePill(message)
+                }
                 Spacer()
             }
 
@@ -460,8 +520,23 @@ struct MainMapView: View {
                 .zIndex(10)
                 .onTapGesture { withAnimation { showFilterMenu = false } }
             }
-        }
 
+            VStack {
+                Spacer()
+                HStack {
+                    Spacer()
+                    recenterButton
+                        .padding(.trailing, 20)
+                        .padding(.bottom, 120)
+                }
+            }
+        }
+        .task {
+            await viewModel.start(filter: selectedFilter)
+        }
+        .onChange(of: selectedFilter) { _, newValue in
+            Task { await viewModel.loadPlaces(filter: newValue) }
+        }
         .sheet(item: $selectedPlace) { place in
             PlaceDetailSheet(place: place)
                 .presentationDetents([.medium, .large])
@@ -531,6 +606,47 @@ struct MainMapView: View {
                 .background(.ultraThinMaterial)
                 .ignoresSafeArea(edges: .top)
         )
+    }
+
+    private var loadingPill: some View {
+        HStack(spacing: 8) {
+            ProgressView()
+            Text("Finding great spots near you…")
+                .font(.caption)
+                .foregroundStyle(AppColors.secondaryText)
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 8)
+        .background(Color(UIColor.systemBackground).opacity(0.95), in: Capsule())
+        .shadow(color: .black.opacity(0.1), radius: 6, x: 0, y: 2)
+        .padding(.top, 12)
+    }
+
+    private func messagePill(_ message: String) -> some View {
+        Text(message)
+            .font(.caption)
+            .foregroundStyle(AppColors.secondaryText)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 8)
+            .background(Color(UIColor.systemBackground).opacity(0.95), in: Capsule())
+            .shadow(color: .black.opacity(0.1), radius: 6, x: 0, y: 2)
+            .padding(.top, 12)
+    }
+
+    private var recenterButton: some View {
+        Button {
+            viewModel.recenterOnUser()
+        } label: {
+            ZStack {
+                Circle()
+                    .fill(Color(UIColor.systemBackground).opacity(0.95))
+                    .frame(width: 44, height: 44)
+                    .shadow(color: .black.opacity(0.15), radius: 6, x: 0, y: 2)
+                Image(systemName: "location.fill")
+                    .font(.system(size: 17, weight: .medium))
+                    .foregroundStyle(AppColors.accent)
+            }
+        }
     }
 }
 
