@@ -8,62 +8,11 @@
 import SwiftUI
 import MapKit
 
-struct PlaceAnnotation: Identifiable {
-    let id = UUID()
-    let name: String
-    let address: String
-    let description: String
-    let coordinate: CLLocationCoordinate2D
-    let category: PlaceCategory
-    let imageName: [String]
-}
-
-enum PlaceCategory: String, CaseIterable {
-    case activities = "activities"
-    case food       = "food"
-    case nature     = "nature"
-
-    var icon: String {
-        switch self {
-        case .activities: return "figure.hiking"
-        case .food:       return "fork.knife"
-        case .nature:     return "leaf"
-        }
-    }
-}
-
-// da dummy
-extension PlaceAnnotation {
-    static let sampleData: [PlaceAnnotation] = [
-        PlaceAnnotation(
-            name: "Ubud Monkey Forest",
-            address: "Jl. Monkey Forest, Ubud, Kecamatan Ubud, Kabupaten Gianyar, Bali 80571, Indonesia",
-            description: "The sanctuary is a popular tourist attraction. It includes numerous species of plants and trees as well as three temples and numerous visitor facilities. The forest lies within the village of Padangtegal and is managed by Mandala Suci Wenara Wana Management.",
-            coordinate: CLLocationCoordinate2D(latitude: -8.5195, longitude: 115.2622),
-            category: .nature,
-            imageName: ["monkey-forest"]
-        ),
-        PlaceAnnotation(
-            name: "Tegallalang Rice Terraces",
-            address: "Tegallalang, Kecamatan Tegallalang, Kabupaten Gianyar, Bali, Indonesia",
-            description: "Iconic terraced rice paddies carved into the hillsides north of Ubud, maintained by a traditional Balinese cooperative irrigation system known as subak, a UNESCO-listed cultural landscape.",
-            coordinate: CLLocationCoordinate2D(latitude: -8.4394, longitude: 115.2799),
-            category: .nature,
-            imageName: ["rice-field"]
-        ),
-        PlaceAnnotation(
-            name: "Apple Developer Academy",
-            address: "Park23 Creative Hub, Jl. Kediri 1st floor, Tuban, Kuta, Badung Regency, Bali 80361",
-            description: "A world-class coding and design academy empowering students to build apps for the Apple ecosystem.",
-            coordinate: CLLocationCoordinate2D(latitude: -8.6259257, longitude: 115.1576691),
-            category: .activities,
-            imageName: ["apple-dev"]
-        )
-    ]
-}
+// MARK: - Map annotation thumbnail
 
 struct ThumbnailAnnotationView: View {
-    let imageName: String
+    let photoURL: URL?
+    let category: PlaceCategory
     let isSelected: Bool
 
     private let size: CGFloat = 56
@@ -76,11 +25,9 @@ struct ThumbnailAnnotationView: View {
                     .shadow(color: .black.opacity(isSelected ? 0.35 : 0.2),
                             radius: isSelected ? 8 : 4, x: 0, y: 2)
 
-                Image(imageName)
-                    .resizable()
-                    .scaledToFill()
-                    .padding(4)
-                    .foregroundStyle(AppColors.accent)
+                photo
+                    .frame(width: size - 8, height: size - 8)
+                    .clipShape(RoundedRectangle(cornerRadius: 7))
             }
             .frame(width: size, height: size)
             .scaleEffect(isSelected ? 1.15 : 1.0)
@@ -91,6 +38,30 @@ struct ThumbnailAnnotationView: View {
                 .frame(width: 14, height: 8)
                 .shadow(color: .black.opacity(0.1), radius: 2, x: 0, y: 1)
         }
+    }
+
+    @ViewBuilder
+    private var photo: some View {
+        if let photoURL {
+            AsyncImage(url: photoURL) { phase in
+                switch phase {
+                case .success(let image):
+                    image.resizable().scaledToFill()
+                case .empty:
+                    ProgressView()
+                default:
+                    categoryIcon
+                }
+            }
+        } else {
+            categoryIcon
+        }
+    }
+
+    private var categoryIcon: some View {
+        Image(systemName: category.icon)
+            .font(.system(size: 22, weight: .medium))
+            .foregroundStyle(AppColors.accent)
     }
 }
 
@@ -105,18 +76,40 @@ struct Triangle: Shape {
     }
 }
 
-struct PlaceholderImage: View {
-    let imageName: String
+// MARK: - Remote photo for the detail sheet
+
+struct RemotePlacePhoto: View {
+    let url: URL?
+    let category: PlaceCategory
+
     var body: some View {
         ZStack {
             Color(UIColor.secondarySystemBackground)
-            Image(imageName)
-                .resizable()
-                .scaledToFill()
-                .foregroundStyle(AppColors.accent.opacity(0.6))
+            if let url {
+                AsyncImage(url: url) { phase in
+                    switch phase {
+                    case .success(let image):
+                        image.resizable().scaledToFill()
+                    case .empty:
+                        ProgressView()
+                    default:
+                        placeholder
+                    }
+                }
+            } else {
+                placeholder
+            }
         }
     }
+
+    private var placeholder: some View {
+        Image(systemName: category.icon)
+            .font(.system(size: 44))
+            .foregroundStyle(AppColors.accent.opacity(0.6))
+    }
 }
+
+// MARK: - Detail sheet
 
 struct PlaceDetailSheet: View {
     let place: PlaceAnnotation
@@ -149,34 +142,48 @@ struct PlaceDetailSheet: View {
                     }
                     .padding(.horizontal, 20)
 
-                    // category badge
-                    Label(place.category.rawValue.capitalized, systemImage: place.category.icon)
-                        .font(.caption)
-                        .fontWeight(.medium)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 5)
-                        .background(AppColors.accent.opacity(0.12))
-                        .foregroundStyle(AppColors.accent)
-                        .clipShape(Capsule())
-                        .padding(.horizontal, 20)
+                    // category badge + rating
+                    HStack(spacing: 10) {
+                        Label(place.category.rawValue.capitalized, systemImage: place.category.icon)
+                            .font(.caption)
+                            .fontWeight(.medium)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 5)
+                            .background(AppColors.accent.opacity(0.12))
+                            .foregroundStyle(AppColors.accent)
+                            .clipShape(Capsule())
 
-                    // for image
-                    TabView {
-                        ForEach(place.imageName, id: \.self) { sym in
-                            PlaceholderImage(imageName: sym)
-                                .clipShape(RoundedRectangle(cornerRadius: 14))
-                                .padding(.horizontal, 20)
+                        if let rating = place.rating {
+                            HStack(spacing: 4) {
+                                Image(systemName: "star.fill")
+                                    .foregroundStyle(.yellow)
+                                Text(String(format: "%.1f", rating))
+                                    .fontWeight(.semibold)
+                                    .foregroundStyle(AppColors.primaryText)
+                                if let count = place.userRatingCount {
+                                    Text("(\(count))")
+                                        .foregroundStyle(AppColors.secondaryText)
+                                }
+                            }
+                            .font(.caption)
                         }
                     }
-                    .tabViewStyle(.page(indexDisplayMode: .automatic))
-                    .frame(height: 200)
+                    .padding(.horizontal, 20)
 
-                    // description text
-                    Text(place.description)
-                        .font(.body)
-                        .foregroundStyle(AppColors.primaryText.opacity(0.85))
-                        .lineSpacing(4)
+                    // photo
+                    RemotePlacePhoto(url: place.photoURL, category: place.category)
+                        .frame(height: 200)
+                        .clipShape(RoundedRectangle(cornerRadius: 14))
                         .padding(.horizontal, 20)
+
+                    // description text (editorial summary; may be empty)
+                    if !place.description.isEmpty {
+                        Text(place.description)
+                            .font(.body)
+                            .foregroundStyle(AppColors.primaryText.opacity(0.85))
+                            .lineSpacing(4)
+                            .padding(.horizontal, 20)
+                    }
 
                     // Available Meetups Section
                     VStack(alignment: .leading, spacing: 12) {
@@ -185,7 +192,7 @@ struct PlaceDetailSheet: View {
                                 .font(.headline)
                                 .fontWeight(.bold)
                                 .foregroundStyle(AppColors.primaryText)
-                            
+
                             if searchPerformed && !groupsViewModel.availableGroups.isEmpty {
                                 Text(groupsViewModel.selectedDate.formatted(date: .long, time: .omitted))
                                     .font(.body)
@@ -296,6 +303,8 @@ struct PlaceDetailSheet: View {
     }
 }
 
+// MARK: - Filter menu
+
 struct FilterMenuView: View {
     @Binding var selectedFilter: PlaceCategory?
     @Binding var isShowing: Bool
@@ -346,39 +355,36 @@ struct FilterMenuView: View {
     }
 }
 
+// MARK: - Main map
+
 struct MainMapView: View {
-    @State private var region = MKCoordinateRegion(
-        center: CLLocationCoordinate2D(latitude: -8.5069, longitude: 115.2624),
-        span: MKCoordinateSpan(latitudeDelta: 0.07, longitudeDelta: 0.07)
-    )
+    @StateObject private var viewModel = ExploreViewModel()
+
     @State private var selectedPlace: PlaceAnnotation? = nil
     @State private var showFilterMenu = false
     @State private var selectedFilter: PlaceCategory? = nil
-    @State private var locationName: String = UserDefaults.standard.string(forKey: "userCity") ?? "Ubud"
-
-    private var visibleAnnotations: [PlaceAnnotation] {
-        guard let filter = selectedFilter else { return PlaceAnnotation.sampleData }
-        return PlaceAnnotation.sampleData.filter { $0.category == filter }
-    }
 
     var body: some View {
         ZStack(alignment: .top) {
-    
-            Map(coordinateRegion: $region,
-                interactionModes: .all,
-                annotationItems: visibleAnnotations) { place in
-                MapAnnotation(coordinate: place.coordinate) {
-                    ThumbnailAnnotationView(
-                        imageName: place.imageName.first ?? "mappin",
-                        isSelected: selectedPlace?.id == place.id
-                    )
-                    .onTapGesture {
-                        withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) {
-                            selectedPlace = (selectedPlace?.id == place.id) ? nil : place
+            Map(position: $viewModel.cameraPosition) {
+                UserAnnotation()
+
+                ForEach(viewModel.places) { place in
+                    Annotation("", coordinate: place.coordinate) {
+                        ThumbnailAnnotationView(
+                            photoURL: place.photoURL,
+                            category: place.category,
+                            isSelected: selectedPlace?.id == place.id
+                        )
+                        .onTapGesture {
+                            withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) {
+                                selectedPlace = (selectedPlace?.id == place.id) ? nil : place
+                            }
                         }
                     }
                 }
             }
+            .mapStyle(.standard)
             .ignoresSafeArea()
             .onTapGesture {
                 withAnimation { selectedPlace = nil }
@@ -386,6 +392,11 @@ struct MainMapView: View {
 
             VStack(spacing: 0) {
                 headerOverlay
+                if viewModel.isLoading {
+                    loadingPill
+                } else if let message = viewModel.errorMessage {
+                    messagePill(message)
+                }
                 Spacer()
             }
 
@@ -403,8 +414,23 @@ struct MainMapView: View {
                 .zIndex(10)
                 .onTapGesture { withAnimation { showFilterMenu = false } }
             }
-        }
 
+            VStack {
+                Spacer()
+                HStack {
+                    Spacer()
+                    recenterButton
+                        .padding(.trailing, 20)
+                        .padding(.bottom, 120)
+                }
+            }
+        }
+        .task {
+            await viewModel.start(filter: selectedFilter)
+        }
+        .onChange(of: selectedFilter) { _, newValue in
+            Task { await viewModel.loadPlaces(filter: newValue) }
+        }
         .sheet(item: $selectedPlace) { place in
             PlaceDetailSheet(place: place)
                 .presentationDetents([.medium, .large])
@@ -414,6 +440,7 @@ struct MainMapView: View {
         .animation(.easeInOut(duration: 0.25), value: showFilterMenu)
     }
 
+    // MARK: - Overlays
 
     private var headerOverlay: some View {
         HStack(alignment: .center) {
@@ -422,7 +449,7 @@ struct MainMapView: View {
                     .font(.title)
                     .fontWeight(.semibold)
                     .foregroundStyle(AppColors.primaryText)
-                Text(locationName)
+                Text(viewModel.locationName)
                     .font(.title)
                     .fontWeight(.semibold)
                     .foregroundStyle(AppColors.accent)
@@ -465,6 +492,47 @@ struct MainMapView: View {
                 .background(.ultraThinMaterial)
                 .ignoresSafeArea(edges: .top)
         )
+    }
+
+    private var loadingPill: some View {
+        HStack(spacing: 8) {
+            ProgressView()
+            Text("Finding great spots near you…")
+                .font(.caption)
+                .foregroundStyle(AppColors.secondaryText)
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 8)
+        .background(Color(UIColor.systemBackground).opacity(0.95), in: Capsule())
+        .shadow(color: .black.opacity(0.1), radius: 6, x: 0, y: 2)
+        .padding(.top, 12)
+    }
+
+    private func messagePill(_ message: String) -> some View {
+        Text(message)
+            .font(.caption)
+            .foregroundStyle(AppColors.secondaryText)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 8)
+            .background(Color(UIColor.systemBackground).opacity(0.95), in: Capsule())
+            .shadow(color: .black.opacity(0.1), radius: 6, x: 0, y: 2)
+            .padding(.top, 12)
+    }
+
+    private var recenterButton: some View {
+        Button {
+            viewModel.recenterOnUser()
+        } label: {
+            ZStack {
+                Circle()
+                    .fill(Color(UIColor.systemBackground).opacity(0.95))
+                    .frame(width: 44, height: 44)
+                    .shadow(color: .black.opacity(0.15), radius: 6, x: 0, y: 2)
+                Image(systemName: "location.fill")
+                    .font(.system(size: 17, weight: .medium))
+                    .foregroundStyle(AppColors.accent)
+            }
+        }
     }
 }
 
