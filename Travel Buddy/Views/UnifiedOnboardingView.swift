@@ -5,8 +5,8 @@
 //  Created by Agustinus Juan Kurniawan on 28/05/26.
 //
 
-import SwiftUI
 import CoreLocation
+import SwiftUI
 
 private let colors = AppColors()
 
@@ -22,16 +22,17 @@ struct UnifiedOnboardingView: View {
     @State private var firstName = ""
     @State private var city: String?
     @State private var userLocation: CLLocation?
+    @State private var keyboardHeight: CGFloat = 0
     @AppStorage("hasOnboarded") private var hasOnboarded = false
     @StateObject private var locationViewModel = LocationPermissionViewModel()
-
 
     var body: some View {
         ZStack(alignment: .top) {
             backgroundView
                 .ignoresSafeArea()
 
-            GlobeRepresentable(location: userLocation)
+            GlobeRepresentable(location: locationViewModel.globeLocation ?? userLocation)
+                .equatable()
                 .frame(height: 1200)
                 .ignoresSafeArea(edges: .top)
                 .offset(y: globeOffset)
@@ -74,10 +75,11 @@ struct UnifiedOnboardingView: View {
                             .frame(maxWidth: .infinity)
                             .padding(.horizontal, 24)
                             .padding(.vertical, 24)
-
                             .padding(.horizontal, 12)
-                            .padding(.bottom, 48)
-                    }.background(
+                            .padding(.bottom, 32)
+                    }
+                    .padding(.bottom, keyboardHeight)
+                    .background(
                         RoundedRectangle(cornerRadius: 24)
                             .fill(AppColors.formBackground)
                             .background(
@@ -88,13 +90,25 @@ struct UnifiedOnboardingView: View {
                                     )
                             )
                     )
-
+                    .ignoresSafeArea()
+                    
                     Spacer()
-                        .frame(height: 200)
+                        .frame(height: 140)
+                    
+                    Spacer()
+                        .frame(height: 32)
                 }
             }
         }
         .navigationBarHidden(true)
+        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { notification in
+            if let frame = notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect {
+                keyboardHeight = max(0, frame.height - 150)
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
+            keyboardHeight = 0
+        }
     }
 
     @ViewBuilder
@@ -156,15 +170,16 @@ struct UnifiedOnboardingView: View {
         case .welcome:
             EmptyView()
         case .nameInput:
-            Text("Let's start your\nadventure!")
+            Text("Let's start your\nAdventure!")
                 .font(.largeTitle)
                 .fontWeight(.bold)
                 .foregroundColor(AppColors.primaryText)
         case .locationPermission:
-            Text("Enable your Location 📍")
+            Text("Enable your\nLocation 📍")
                 .font(.largeTitle)
                 .fontWeight(.bold)
                 .foregroundColor(AppColors.primaryText)
+            
         case .locationConfirmed:
             VStack(alignment: .center, spacing: 4) {
                 Text(
@@ -175,15 +190,18 @@ struct UnifiedOnboardingView: View {
                 .foregroundColor(AppColors.primaryText)
 
                 HStack(spacing: 0) {
-                    Text("Welcome to ")
-                        .font(.largeTitle)
-                        .fontWeight(.bold)
-                        .foregroundColor(AppColors.primaryText)
+                    VStack(spacing: 0) {
 
-                    Text(city ?? "your city")
-                        .font(.largeTitle)
-                        .fontWeight(.bold)
-                        .foregroundColor(AppColors.accent)
+                        Text("Welcome to ")
+                            .font(.largeTitle)
+                            .fontWeight(.bold)
+                            .foregroundColor(AppColors.primaryText)
+
+                        Text(city ?? "your city")
+                            .font(.largeTitle)
+                            .fontWeight(.bold)
+                            .foregroundColor(AppColors.accent)
+                    }
                 }
             }
             .frame(maxWidth: .infinity, alignment: .center)
@@ -231,7 +249,8 @@ struct UnifiedOnboardingView: View {
                     .frame(maxWidth: .infinity)
                     .padding()
                     .background(
-                        firstName.isEmpty ? AppColors.accentDisabled : AppColors.accent
+                        firstName.isEmpty
+                            ? AppColors.accentDisabled : AppColors.accent
                     )
                     .foregroundColor(.white)
                     .clipShape(Capsule())

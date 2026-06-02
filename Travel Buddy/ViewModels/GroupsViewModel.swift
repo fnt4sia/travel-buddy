@@ -26,7 +26,7 @@ class GroupsViewModel: ObservableObject {
             name: "Sunset Explorer",
             address: "Jl. Raya Ubud No.35, Ubud, Kecamatan Ubud",
             date: Calendar.current.date(byAdding: .day, value: 0, to: Date()) ?? Date(),
-            maxCapacity: 6,
+            maxCapacity: 4,
             members: [
                 GroupMember(name: "Jody", color: "purple"),
                 GroupMember(name: "Balqis", color: "orange"),

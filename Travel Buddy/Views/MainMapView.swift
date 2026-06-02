@@ -5,8 +5,8 @@
 //  Created by Balqis Putri Muharda on 29/05/26.
 //
 
-import SwiftUI
 import MapKit
+import SwiftUI
 
 struct PlaceAnnotation: Identifiable {
     let id = UUID()
@@ -20,14 +20,14 @@ struct PlaceAnnotation: Identifiable {
 
 enum PlaceCategory: String, CaseIterable {
     case activities = "activities"
-    case food       = "food"
-    case nature     = "nature"
+    case food = "food"
+    case nature = "nature"
 
     var icon: String {
         switch self {
         case .activities: return "figure.hiking"
-        case .food:       return "fork.knife"
-        case .nature:     return "leaf"
+        case .food: return "fork.knife"
+        case .nature: return "leaf"
         }
     }
 }
@@ -37,28 +37,43 @@ extension PlaceAnnotation {
     static let sampleData: [PlaceAnnotation] = [
         PlaceAnnotation(
             name: "Ubud Monkey Forest",
-            address: "Jl. Monkey Forest, Ubud, Kecamatan Ubud, Kabupaten Gianyar, Bali 80571, Indonesia",
-            description: "The sanctuary is a popular tourist attraction. It includes numerous species of plants and trees as well as three temples and numerous visitor facilities. The forest lies within the village of Padangtegal and is managed by Mandala Suci Wenara Wana Management.",
-            coordinate: CLLocationCoordinate2D(latitude: -8.5195, longitude: 115.2622),
+            address:
+                "Jl. Monkey Forest, Ubud, Kecamatan Ubud, Kabupaten Gianyar, Bali 80571, Indonesia",
+            description:
+                "The sanctuary is a popular tourist attraction. It includes numerous species of plants and trees as well as three temples and numerous visitor facilities. The forest lies within the village of Padangtegal and is managed by Mandala Suci Wenara Wana Management.",
+            coordinate: CLLocationCoordinate2D(
+                latitude: -8.5195,
+                longitude: 115.2622
+            ),
             category: .nature,
             imageName: ["monkey-forest"]
         ),
         PlaceAnnotation(
             name: "Tegallalang Rice Terraces",
-            address: "Tegallalang, Kecamatan Tegallalang, Kabupaten Gianyar, Bali, Indonesia",
-            description: "Iconic terraced rice paddies carved into the hillsides north of Ubud, maintained by a traditional Balinese cooperative irrigation system known as subak, a UNESCO-listed cultural landscape.",
-            coordinate: CLLocationCoordinate2D(latitude: -8.4394, longitude: 115.2799),
+            address:
+                "Tegallalang, Kecamatan Tegallalang, Kabupaten Gianyar, Bali, Indonesia",
+            description:
+                "Iconic terraced rice paddies carved into the hillsides north of Ubud, maintained by a traditional Balinese cooperative irrigation system known as subak, a UNESCO-listed cultural landscape.",
+            coordinate: CLLocationCoordinate2D(
+                latitude: -8.4394,
+                longitude: 115.2799
+            ),
             category: .nature,
             imageName: ["rice-field"]
         ),
         PlaceAnnotation(
             name: "Apple Developer Academy",
-            address: "Park23 Creative Hub, Jl. Kediri 1st floor, Tuban, Kuta, Badung Regency, Bali 80361",
-            description: "A world-class coding and design academy empowering students to build apps for the Apple ecosystem.",
-            coordinate: CLLocationCoordinate2D(latitude: -8.6259257, longitude: 115.1576691),
+            address:
+                "Park23 Creative Hub, Jl. Kediri 1st floor, Tuban, Kuta, Badung Regency, Bali 80361",
+            description:
+                "A world-class coding and design academy empowering students to build apps for the Apple ecosystem.",
+            coordinate: CLLocationCoordinate2D(
+                latitude: -8.6259257,
+                longitude: 115.1576691
+            ),
             category: .activities,
             imageName: ["apple-dev"]
-        )
+        ),
     ]
 }
 
@@ -73,8 +88,12 @@ struct ThumbnailAnnotationView: View {
             ZStack {
                 RoundedRectangle(cornerRadius: 10)
                     .fill(Color.white)
-                    .shadow(color: .black.opacity(isSelected ? 0.35 : 0.2),
-                            radius: isSelected ? 8 : 4, x: 0, y: 2)
+                    .shadow(
+                        color: .black.opacity(isSelected ? 0.35 : 0.2),
+                        radius: isSelected ? 8 : 4,
+                        x: 0,
+                        y: 2
+                    )
 
                 Image(imageName)
                     .resizable()
@@ -84,7 +103,10 @@ struct ThumbnailAnnotationView: View {
             }
             .frame(width: size, height: size)
             .scaleEffect(isSelected ? 1.15 : 1.0)
-            .animation(.spring(response: 0.3, dampingFraction: 0.6), value: isSelected)
+            .animation(
+                .spring(response: 0.3, dampingFraction: 0.6),
+                value: isSelected
+            )
 
             Triangle()
                 .fill(Color.white)
@@ -150,15 +172,18 @@ struct PlaceDetailSheet: View {
                     .padding(.horizontal, 20)
 
                     // category badge
-                    Label(place.category.rawValue.capitalized, systemImage: place.category.icon)
-                        .font(.caption)
-                        .fontWeight(.medium)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 5)
-                        .background(AppColors.accent.opacity(0.12))
-                        .foregroundStyle(AppColors.accent)
-                        .clipShape(Capsule())
-                        .padding(.horizontal, 20)
+                    Label(
+                        place.category.rawValue.capitalized,
+                        systemImage: place.category.icon
+                    )
+                    .font(.caption)
+                    .fontWeight(.medium)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 5)
+                    .background(AppColors.accent.opacity(0.12))
+                    .foregroundStyle(AppColors.accent)
+                    .clipShape(Capsule())
+                    .padding(.horizontal, 20)
 
                     // for image
                     TabView {
@@ -180,20 +205,11 @@ struct PlaceDetailSheet: View {
 
                     // Available Meetups Section
                     VStack(alignment: .leading, spacing: 12) {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("Available Meetups")
-                                .font(.headline)
-                                .fontWeight(.bold)
-                                .foregroundStyle(AppColors.primaryText)
-                            
-                            if searchPerformed && !groupsViewModel.availableGroups.isEmpty {
-                                Text(groupsViewModel.selectedDate.formatted(date: .long, time: .omitted))
-                                    .font(.body)
-                                    .fontWeight(.semibold)
-                                    .foregroundStyle(AppColors.primaryText)
-                            }
-                        }
-                        .padding(.horizontal, 20)
+                        Text("Available Meetups")
+                            .font(.headline)
+                            .fontWeight(.bold)
+                            .foregroundStyle(AppColors.primaryText)
+                            .padding(.horizontal, 20)
 
                         // Date Picker Section
                         VStack(spacing: 12) {
@@ -202,19 +218,29 @@ struct PlaceDetailSheet: View {
                                     HStack {
                                         Image(systemName: "calendar")
                                             .foregroundStyle(AppColors.accent)
-                                        Text(searchPerformed ? groupsViewModel.selectedDate.formatted(date: .abbreviated, time: .omitted) : "Select your available date")
-                                            .foregroundStyle(AppColors.primaryText)
+                                        Text(
+                                            groupsViewModel.selectedDate
+                                                .formatted(
+                                                    date: .abbreviated,
+                                                    time: .omitted
+                                                )
+                                        )
+                                        .foregroundStyle(AppColors.primaryText)
                                         Spacer()
                                     }
                                     .padding(.horizontal, 12)
                                     .padding(.vertical, 10)
-                                    .background(Color(UIColor.secondarySystemBackground))
+                                    .background(
+                                        Color(UIColor.secondarySystemBackground)
+                                    )
                                     .cornerRadius(20)
                                 }
 
                                 Button(action: {
                                     searchPerformed = true
-                                    groupsViewModel.searchGroups(for: groupsViewModel.selectedDate)
+                                    groupsViewModel.searchGroups(
+                                        for: groupsViewModel.selectedDate
+                                    )
                                 }) {
                                     HStack(spacing: 8) {
                                         Image(systemName: "magnifyingglass")
@@ -238,24 +264,34 @@ struct PlaceDetailSheet: View {
                                 VStack(spacing: 8) {
                                     Image(systemName: "magnifyingglass")
                                         .font(.system(size: 20))
-                                        .foregroundStyle(AppColors.secondaryText)
+                                        .foregroundStyle(
+                                            AppColors.secondaryText
+                                        )
                                     Text("No groups available")
                                         .font(.caption)
-                                        .foregroundStyle(AppColors.secondaryText)
+                                        .foregroundStyle(
+                                            AppColors.secondaryText
+                                        )
                                 }
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 20)
                             } else {
                                 VStack(spacing: 12) {
-                                    ForEach(groupsViewModel.availableGroups) { group in
+                                    ForEach(groupsViewModel.availableGroups) {
+                                        group in
                                         GroupRowView(
                                             group: group,
-                                            hasJoined: groupsViewModel.hasJoinedGroup(group),
+                                            hasJoined:
+                                                groupsViewModel.hasJoinedGroup(
+                                                    group
+                                                ),
                                             onJoinTapped: {
                                                 groupsViewModel.joinGroup(group)
                                             },
                                             onLeaveTapped: {
-                                                groupsViewModel.leaveGroup(group)
+                                                groupsViewModel.leaveGroup(
+                                                    group
+                                                )
                                             }
                                         )
                                     }
@@ -282,9 +318,12 @@ struct PlaceDetailSheet: View {
         }
         .background(Color(UIColor.systemBackground))
         .sheet(isPresented: $showDatePicker) {
-            DatePickerSheetContent(isPresented: $showDatePicker, selectedDate: $groupsViewModel.selectedDate)
-                .presentationDetents([.height(500)])
-                .presentationDragIndicator(.visible)
+            DatePickerSheetContent(
+                isPresented: $showDatePicker,
+                selectedDate: $groupsViewModel.selectedDate
+            )
+            .presentationDetents([.height(500)])
+            .presentationDragIndicator(.visible)
         }
         .sheet(isPresented: $groupsViewModel.showGroupConfirmation) {
             if let group = groupsViewModel.selectedGroup {
@@ -305,7 +344,8 @@ struct FilterMenuView: View {
             ForEach(PlaceCategory.allCases, id: \.self) { category in
                 Button {
                     withAnimation(.easeInOut(duration: 0.2)) {
-                        selectedFilter = (selectedFilter == category) ? nil : category
+                        selectedFilter =
+                            (selectedFilter == category) ? nil : category
                         isShowing = false
                     }
                 } label: {
@@ -313,12 +353,14 @@ struct FilterMenuView: View {
                         Image(systemName: category.icon)
                             .frame(width: 20)
                             .foregroundStyle(
-                                selectedFilter == category ? AppColors.accent : AppColors.secondaryText
+                                selectedFilter == category
+                                    ? AppColors.accent : AppColors.secondaryText
                             )
                         Text(category.rawValue)
                             .font(.body)
                             .foregroundStyle(
-                                selectedFilter == category ? AppColors.accent : AppColors.primaryText
+                                selectedFilter == category
+                                    ? AppColors.accent : AppColors.primaryText
                             )
                         Spacer()
                         if selectedFilter == category {
@@ -354,27 +396,35 @@ struct MainMapView: View {
     @State private var selectedPlace: PlaceAnnotation? = nil
     @State private var showFilterMenu = false
     @State private var selectedFilter: PlaceCategory? = nil
-    @State private var locationName: String = UserDefaults.standard.string(forKey: "userCity") ?? "Ubud"
+    @State private var locationName: String =
+        UserDefaults.standard.string(forKey: "userCity") ?? "Ubud"
 
     private var visibleAnnotations: [PlaceAnnotation] {
-        guard let filter = selectedFilter else { return PlaceAnnotation.sampleData }
+        guard let filter = selectedFilter else {
+            return PlaceAnnotation.sampleData
+        }
         return PlaceAnnotation.sampleData.filter { $0.category == filter }
     }
 
     var body: some View {
         ZStack(alignment: .top) {
-    
-            Map(coordinateRegion: $region,
+
+            Map(
+                coordinateRegion: $region,
                 interactionModes: .all,
-                annotationItems: visibleAnnotations) { place in
+                annotationItems: visibleAnnotations
+            ) { place in
                 MapAnnotation(coordinate: place.coordinate) {
                     ThumbnailAnnotationView(
                         imageName: place.imageName.first ?? "mappin",
                         isSelected: selectedPlace?.id == place.id
                     )
                     .onTapGesture {
-                        withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) {
-                            selectedPlace = (selectedPlace?.id == place.id) ? nil : place
+                        withAnimation(
+                            .spring(response: 0.35, dampingFraction: 0.7)
+                        ) {
+                            selectedPlace =
+                                (selectedPlace?.id == place.id) ? nil : place
                         }
                     }
                 }
@@ -393,13 +443,20 @@ struct MainMapView: View {
                 VStack {
                     HStack {
                         Spacer()
-                        FilterMenuView(selectedFilter: $selectedFilter, isShowing: $showFilterMenu)
-                            .padding(.top, 72)
-                            .padding(.trailing, 16)
+                        FilterMenuView(
+                            selectedFilter: $selectedFilter,
+                            isShowing: $showFilterMenu
+                        )
+                        .padding(.top, 72)
+                        .padding(.trailing, 16)
                     }
                     Spacer()
                 }
-                .transition(.opacity.combined(with: .scale(scale: 0.9, anchor: .topTrailing)))
+                .transition(
+                    .opacity.combined(
+                        with: .scale(scale: 0.9, anchor: .topTrailing)
+                    )
+                )
                 .zIndex(10)
                 .onTapGesture { withAnimation { showFilterMenu = false } }
             }
@@ -414,18 +471,19 @@ struct MainMapView: View {
         .animation(.easeInOut(duration: 0.25), value: showFilterMenu)
     }
 
-
     private var headerOverlay: some View {
         HStack(alignment: .center) {
             HStack(spacing: 0) {
-                Text("You're in ")
-                    .font(.title)
-                    .fontWeight(.semibold)
-                    .foregroundStyle(AppColors.primaryText)
-                Text(locationName)
-                    .font(.title)
-                    .fontWeight(.semibold)
-                    .foregroundStyle(AppColors.accent)
+                VStack(alignment: .leading, spacing: 0) {
+                    Text("You're in ")
+                        .font(.title)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(AppColors.primaryText)
+                    Text(locationName)
+                        .font(.title)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(AppColors.accent)
+                }
             }
 
             Spacer()
@@ -440,11 +498,19 @@ struct MainMapView: View {
                     Circle()
                         .fill(Color(UIColor.systemBackground).opacity(0.9))
                         .frame(width: 40, height: 40)
-                        .shadow(color: .black.opacity(0.12), radius: 6, x: 0, y: 2)
+                        .shadow(
+                            color: .black.opacity(0.12),
+                            radius: 6,
+                            x: 0,
+                            y: 2
+                        )
 
                     Image(systemName: "slider.horizontal.3")
                         .font(.system(size: 16, weight: .medium))
-                        .foregroundStyle(selectedFilter != nil ? AppColors.accent : AppColors.primaryText)
+                        .foregroundStyle(
+                            selectedFilter != nil
+                                ? AppColors.accent : AppColors.primaryText
+                        )
                 }
             }
             .overlay(alignment: .topTrailing) {

@@ -15,6 +15,7 @@ class LocationPermissionViewModel: ObservableObject {
     @Published var isLoading = false
     @Published var navigateToConfirm = false
     @Published var location: CLLocation?
+    @Published var globeLocation: CLLocation?
 
     private let locationService: LocationService
     private var resolvedLocation: CLLocation?
@@ -34,6 +35,9 @@ class LocationPermissionViewModel: ObservableObject {
             let geocodedCity = await GeocodingService.cityName(for: location)
             print("[DEBUG] Geocoded city: \(geocodedCity)")
             city = geocodedCity
+
+            let countryLocation = await GeocodingService.countryLocation(for: location)
+            globeLocation = countryLocation ?? location
             navigateToConfirm = true
         } catch {
             print("[DEBUG] Location error: \(error)")

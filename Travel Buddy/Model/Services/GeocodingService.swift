@@ -14,4 +14,16 @@ final class GeocodingService {
         let placemarks = try? await CLGeocoder().reverseGeocodeLocation(location)
         return placemarks?.first?.locality ?? "your city"
     }
+
+    static func countryLocation(for location: CLLocation) async -> CLLocation? {
+        guard let placemark = try? await CLGeocoder().reverseGeocodeLocation(location).first else {
+            return nil
+        }
+
+        let countryQuery = placemark.country ?? placemark.isoCountryCode
+        guard let countryQuery else { return nil }
+
+        let countryPlacemarks = try? await CLGeocoder().geocodeAddressString(countryQuery)
+        return countryPlacemarks?.first?.location
+    }
 }
