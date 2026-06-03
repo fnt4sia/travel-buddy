@@ -120,9 +120,6 @@ struct RemotePlacePhoto: View {
 
 struct PlaceDetailSheet: View {
     let place: PlaceAnnotation
-    @StateObject private var groupsViewModel = GroupsViewModel()
-    @State private var showDatePicker = false
-    @State private var searchPerformed = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -189,134 +186,13 @@ struct PlaceDetailSheet: View {
                         .padding(.horizontal, 20)
 
                     // Available Meetups Section
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text("Available Meetups")
-                            .font(.headline)
-                            .fontWeight(.bold)
-                            .foregroundStyle(AppColors.primaryText)
-                            .padding(.horizontal, 20)
-
-                        // Date Picker Section
-                        VStack(spacing: 12) {
-                            HStack(spacing: 12) {
-                                Button(action: { showDatePicker = true }) {
-                                    HStack {
-                                        Image(systemName: "calendar")
-                                            .foregroundStyle(AppColors.accent)
-                                        Text(
-                                            groupsViewModel.selectedDate
-                                                .formatted(
-                                                    date: .abbreviated,
-                                                    time: .omitted
-                                                )
-                                        )
-                                        .foregroundStyle(AppColors.primaryText)
-                                        Spacer()
-                                    }
-                                    .padding(.horizontal, 12)
-                                    .padding(.vertical, 10)
-                                    .background(
-                                        Color(UIColor.secondarySystemBackground)
-                                    )
-                                    .cornerRadius(20)
-                                }
-
-                                Button(action: {
-                                    searchPerformed = true
-                                    groupsViewModel.searchGroups(
-                                        for: groupsViewModel.selectedDate
-                                    )
-                                }) {
-                                    HStack(spacing: 8) {
-                                        Image(systemName: "magnifyingglass")
-                                        Text("Search")
-                                    }
-                                    .font(.body)
-                                    .fontWeight(.semibold)
-                                    .frame(maxWidth: .infinity)
-                                    .padding(.vertical, 10)
-                                    .background(AppColors.accent)
-                                    .foregroundStyle(.white)
-                                    .cornerRadius(20)
-                                }
-                            }
-                        }
+                    ActivityGroupsView()
                         .padding(.horizontal, 20)
-
-                        // Groups List
-                        if searchPerformed {
-                            if groupsViewModel.availableGroups.isEmpty {
-                                VStack(spacing: 8) {
-                                    Image(systemName: "magnifyingglass")
-                                        .font(.system(size: 20))
-                                        .foregroundStyle(
-                                            AppColors.secondaryText
-                                        )
-                                    Text("No groups available")
-                                        .font(.caption)
-                                        .foregroundStyle(
-                                            AppColors.secondaryText
-                                        )
-                                }
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 20)
-                            } else {
-                                VStack(spacing: 12) {
-                                    ForEach(groupsViewModel.availableGroups) {
-                                        group in
-                                        GroupRowView(
-                                            group: group,
-                                            hasJoined:
-                                                groupsViewModel.hasJoinedGroup(
-                                                    group
-                                                ),
-                                            onJoinTapped: {
-                                                groupsViewModel.joinGroup(group)
-                                            },
-                                            onLeaveTapped: {
-                                                groupsViewModel.leaveGroup(
-                                                    group
-                                                )
-                                            }
-                                        )
-                                    }
-                                }
-                                .padding(.horizontal, 20)
-                            }
-                        } else {
-                            VStack(spacing: 8) {
-                                Image(systemName: "calendar.badge.plus")
-                                    .font(.system(size: 20))
-                                    .foregroundStyle(AppColors.accent)
-                                Text("Select a date to see groups")
-                                    .font(.caption)
-                                    .foregroundStyle(AppColors.secondaryText)
-                            }
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 20)
-                        }
-                    }
-                    .padding(.vertical, 16)
-                    .padding(.bottom, 20)
+                        .padding(.top, 8)
                 }
             }
         }
         .background(Color(UIColor.systemBackground))
-        .sheet(isPresented: $showDatePicker) {
-            DatePickerSheetContent(
-                isPresented: $showDatePicker,
-                selectedDate: $groupsViewModel.selectedDate
-            )
-            .presentationDetents([.height(500)])
-            .presentationDragIndicator(.visible)
-        }
-        .sheet(isPresented: $groupsViewModel.showGroupConfirmation) {
-            if let group = groupsViewModel.selectedGroup {
-                GroupConfirmationView(group: group)
-                    .presentationDetents([.large])
-                    .presentationDragIndicator(.hidden)
-            }
-        }
     }
 }
 
