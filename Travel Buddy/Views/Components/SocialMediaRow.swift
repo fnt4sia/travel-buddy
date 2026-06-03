@@ -5,7 +5,6 @@
 //  Created by Balqis Putri Muharda on 02/06/26.
 //
 
-
 import SwiftUI
 
 struct SocialMediaRow: View {
@@ -16,7 +15,7 @@ struct SocialMediaRow: View {
 
     var body: some View {
         HStack(spacing: 10) {
-            badge
+            SocialBadge(platform: platform)
 
             HStack(spacing: 4) {
                 Text(platform.displayName)
@@ -27,24 +26,6 @@ struct SocialMediaRow: View {
             .font(.system(size: ProfileMetrics.Font.social))
             .foregroundStyle(AppColors.primaryText)
         }
-    }
-
-    private var badge: some View {
-        Group {
-            if UIImage(named: platform.assetName) != nil {
-                Image(platform.assetName)
-                    .resizable()
-                    .scaledToFit()
-            } else {
-                Image(systemName: platform.fallbackSymbol)
-                    .font(.system(size: 13, weight: .bold))
-                    .foregroundStyle(.white)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .background(platform.badgeBackground)
-            }
-        }
-        .frame(width: 24, height: 24)
-        .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
     }
 }
 

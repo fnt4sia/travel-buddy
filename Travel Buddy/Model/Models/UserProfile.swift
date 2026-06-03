@@ -15,6 +15,16 @@ struct UserProfile: Identifiable {
         let countryCode: String
         let instagramHandle: String
         let twitterHandle: String
+
+    var city: String = ""
+    var coverImageName: String = ""
+    var galleryImageNames: [String] = []
+}
+
+extension UserProfile {
+    var locationText: String {
+        [city, country].filter { !$0.isEmpty }.joined(separator: ", ")
+    }
 }
 
 // data dummy before using SwiftData
@@ -335,4 +345,33 @@ extension UserProfile {
 
         )
     }
+}
+
+
+// Mock by user inter
+extension UserProfile {
+    static let otherUserMock = UserProfile(
+        name: "John",
+        age: 25,
+        interests: ["Photography", "Museums", "Music"],
+        languages: ["Malaysia", "Indonesia"],
+        country: "Malaysia",
+        profileImageName: "john_profile",
+        languageFlag: "\u{1F1F2}\u{1F1FE}",
+        isFavorite: false,
+        bio: "Chasing sunsets and new stories \u{1F30D}",
+        aboutMe: """
+        I love exploring new places, trying local food, and meeting new people \
+        along the way. Traveling makes me feel alive and gives me new perspectives \
+        about the world. Usually the one saying \u{201C}let\u{2019}s just go\u{201D} when there\u{2019}s an \
+        adventure involved. I enjoy nature, city walks, hidden cafes, and \
+        spontaneous plans.
+        """,
+        countryCode: "MYS",
+        instagramHandle: "@markjohn22",
+        twitterHandle: "@jmark22",
+        city: "Kuala Lumpur",
+        coverImageName: "cover_mountains",
+        galleryImageNames: ["gallery_1", "gallery_2", "gallery_3", "gallery_4"]
+    )
 }

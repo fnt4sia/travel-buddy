@@ -5,9 +5,7 @@
 //  Created by Balqis Putri Muharda on 02/06/26.
 //
 
-
 import SwiftUI
-
 struct ProfileSection<Content: View>: View {
     let icon: String
     let title: String
@@ -15,17 +13,7 @@ struct ProfileSection<Content: View>: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: ProfileMetrics.Layout.sectionTitleSpacing) {
-            HStack(spacing: ProfileMetrics.Layout.iconTitleSpacing) {
-                Image(systemName: icon)
-                    .font(.system(size: ProfileMetrics.Font.sectionIcon, weight: .semibold))
-                    .foregroundStyle(AppColors.primaryText)
-                    .frame(width: 28)
-
-                Text(title)
-                    .font(.system(size: ProfileMetrics.Font.sectionTitle, weight: .medium))
-                    .foregroundStyle(AppColors.primaryText)
-            }
-
+            SectionHeader(icon: icon, title: title)
             content
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -33,7 +21,7 @@ struct ProfileSection<Content: View>: View {
 }
 
 #Preview {
-    ProfileSection(icon: "heart.circle.fill", title: "Interest") {
+    ProfileSection(icon: "heart.fill", title: "Interest") {
         FlowLayout {
             InterestChip(interest: "Photography")
             InterestChip(interest: "Museums")
