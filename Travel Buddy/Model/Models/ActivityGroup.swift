@@ -5,10 +5,10 @@ struct ActivityGroup: Identifiable {
     let name: String
     let address: String
     let date: Date
-    let maxCapacity: Int
-    var members: [GroupMember]
     let meetingTime: String
+    let maxCapacity: Int
     let price: String
+    var members: [GroupMember]
 
     init(
         id: UUID = UUID(),
@@ -29,11 +29,11 @@ struct ActivityGroup: Identifiable {
         self.meetingTime = meetingTime
         self.price = price
     }
-    
+
     var isFull: Bool {
         members.count >= maxCapacity
     }
-    
+
     var availableSpots: Int {
         max(0, maxCapacity - members.count)
     }
