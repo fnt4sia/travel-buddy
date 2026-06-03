@@ -24,9 +24,11 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		6CB8990000000000000000A2 /* Secrets.example.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Secrets.example.xcconfig; sourceTree = "<group>"; };
 		6CB899552FBD7F9F00D989D1 /* Travel Buddy.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Travel Buddy.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		6CB899622FBD7FA100D989D1 /* Travel BuddyTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Travel BuddyTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		6CB8996C2FBD7FA100D989D1 /* Travel BuddyUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Travel BuddyUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		6CC336322FCEDB83001F1EA4 /* Secrets.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Secrets.xcconfig; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -75,6 +77,8 @@
 		6CB8994C2FBD7F9F00D989D1 = {
 			isa = PBXGroup;
 			children = (
+				6CB8990000000000000000A2 /* Secrets.example.xcconfig */,
+				6CC336322FCEDB83001F1EA4 /* Secrets.xcconfig */,
 				6CB899572FBD7F9F00D989D1 /* Travel Buddy */,
 				6CB899652FBD7FA100D989D1 /* Travel BuddyTests */,
 				6CB8996F2FBD7FA100D989D1 /* Travel BuddyUITests */,
@@ -271,6 +275,7 @@
 /* Begin XCBuildConfiguration section */
 		6CB899742FBD7FA100D989D1 /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 6CC336322FCEDB83001F1EA4 /* Secrets.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
@@ -334,6 +339,7 @@
 		};
 		6CB899752FBD7FA100D989D1 /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 6CC336322FCEDB83001F1EA4 /* Secrets.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
@@ -398,6 +404,7 @@
 				DEVELOPMENT_TEAM = NL42U265A4;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "TravelBuddy-Info.plist";
 				INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = "We need your location to find recommended local activities and groups of people that are relevant to you.";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "We need your location to find recommended local activities and groups of people that are relevant to you.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -432,6 +439,7 @@
 				DEVELOPMENT_TEAM = NL42U265A4;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "TravelBuddy-Info.plist";
 				INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = "We need your location to find recommended local activities and groups of people that are relevant to you.";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "We need your location to find recommended local activities and groups of people that are relevant to you.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;

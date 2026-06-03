@@ -19,7 +19,11 @@ class LocationPermissionViewModel: ObservableObject {
     private let locationService: LocationService
     private var resolvedLocation: CLLocation?
 
-    init(locationService: LocationService = .shared) {
+    convenience init() {
+        self.init(locationService: LocationService.shared)
+    }
+
+    init(locationService: LocationService) {
         self.locationService = locationService
     }
 
@@ -30,6 +34,10 @@ class LocationPermissionViewModel: ObservableObject {
             print("[DEBUG] Location obtained in ViewModel: \(location.coordinate.latitude), \(location.coordinate.longitude)")
             resolvedLocation = location
             self.location = location
+
+            // Persist coordinates so the map can center on the user right away.
+            UserDefaults.standard.set(location.coordinate.latitude, forKey: "userLat")
+            UserDefaults.standard.set(location.coordinate.longitude, forKey: "userLng")
 
             let geocodedCity = await GeocodingService.cityName(for: location)
             print("[DEBUG] Geocoded city: \(geocodedCity)")
