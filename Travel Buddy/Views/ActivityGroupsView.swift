@@ -1,101 +1,71 @@
 import SwiftUI
 
+// MARK: - Activity Groups View
+// Single source of truth for the meetup flow.
+// Can be launched standalone (tab bar) or from a place (PlaceDetailSheet).
+
 struct ActivityGroupsView: View {
+    /// When launched from a place, shows place context and pre-fills meetup defaults.
+    let place: PlaceAnnotation?
+
     @StateObject private var viewModel = GroupsViewModel()
     @State private var showDatePicker = false
     @State private var showCreateMeetup = false
-    @State private var chatPath: [UUID] = []
+
+    enum GroupRoute: Hashable {
+        case detail(UUID)
+        case chat(UUID)
+    }
+    @State private var path: [GroupRoute] = []
+
+    // Confirmation popup — lifted here so it overlays the full screen, not just one card
+    enum PendingConfirmation { case join(ActivityGroup), leave(ActivityGroup) }
+    @State private var pendingConfirmation: PendingConfirmation?
+
+    // Convenience init for standalone (tab bar) usage
+    init(place: PlaceAnnotation? = nil) {
+        self.place = place
+    }
 
     var body: some View {
-        NavigationStack(path: $chatPath) {
-            VStack(spacing: 16) {
-                VStack(spacing: 12) {
-                    Text("Select Available Date")
-                        .font(.headline)
-                        .foregroundStyle(AppColors.primaryText)
-                        .frame(maxWidth: .infinity, alignment: .leading)
+        ZStack {
+        NavigationStack(path: $path) {
+            VStack(spacing: 0) {
+                // Date + Create row
+                dateAndCreateRow
+                    .padding(.horizontal, 16)
+                    .padding(.top, 16)
+                    .padding(.bottom, 12)
 
-                    HStack(spacing: 12) {
-                        Button(action: { showDatePicker = true }) {
-                            HStack {
-                                Image(systemName: "calendar")
-                                    .foregroundStyle(AppColors.accent)
-                                Text(
-                                    viewModel.selectedDate.formatted(
-                                        date: .abbreviated,
-                                        time: .omitted
-                                    )
-                                )
-                                .foregroundStyle(AppColors.primaryText)
-                                Spacer()
-                            }
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 10)
-                            .background(Color(UIColor.secondarySystemBackground))
-                            .cornerRadius(8)
-                        }
-
-                        Button(action: { showCreateMeetup = true }) {
-                            HStack(spacing: 8) {
-                                Image(systemName: "plus")
-                                Text("Create")
-                            }
-                            .font(.body)
-                            .fontWeight(.semibold)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 10)
-                            .background(AppColors.accent)
-                            .foregroundStyle(.white)
-                            .cornerRadius(8)
-                        }
-                    }
-                }
-                .padding(.horizontal, 16)
-                .padding(.top, 16)
-
+                // Groups list or empty state
                 if viewModel.availableGroups.isEmpty {
-                    VStack(spacing: 12) {
-                        Image(systemName: "calendar.badge.exclamationmark")
-                            .font(.system(size: 32))
-                            .foregroundStyle(AppColors.secondaryText)
-                        Text("No meetups available")
-                            .font(.body)
-                            .foregroundStyle(AppColors.secondaryText)
-                        Text("Create one for this date")
-                            .font(.caption)
-                            .foregroundStyle(AppColors.secondaryText)
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 40)
+                    emptyState
                 } else {
-                    ScrollView(showsIndicators: false) {
-                        VStack(spacing: 12) {
-                            ForEach(viewModel.availableGroups) { group in
-                                GroupRowView(
-                                    group: group,
-                                    hasJoined: viewModel.hasJoinedGroup(group),
-                                    onJoinTapped: {
-                                        navigateToChat(afterJoining: group)
-                                    },
-                                    onLeaveTapped: {
-                                        viewModel.leaveGroup(group)
-                                    }
-                                )
-                            }
-                        }
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 12)
-                    }
+                    groupsList
                 }
 
                 Spacer()
             }
             .background(Color(UIColor.systemBackground))
+            .navigationTitle(place.map { "\($0.name) Meetups" } ?? "Meetups")
+            .navigationBarTitleDisplayMode(.large)
             .onAppear {
                 viewModel.refreshAvailableGroups()
             }
-            .navigationDestination(for: UUID.self) { groupID in
-                GroupChatView(groupID: groupID, showsCloseButton: false)
+            .navigationDestination(for: GroupRoute.self) { route in
+                switch route {
+                case .detail(let groupID):
+                    if let group = viewModel.availableGroups.first(where: { $0.id == groupID }) {
+                        GroupDetailView(
+                            group: group,
+                            hasJoined: viewModel.hasJoinedGroup(group),
+                            pendingConfirmation: $pendingConfirmation,
+                            openChat: { path.append(.chat(group.id)) }
+                        )
+                    }
+                case .chat(let groupID):
+                    GroupChatView(groupID: groupID, showsCloseButton: false)
+                }
             }
             .sheet(isPresented: $showDatePicker) {
                 DatePickerSheetContent(
@@ -108,9 +78,10 @@ struct ActivityGroupsView: View {
             .sheet(isPresented: $showCreateMeetup) {
                 CreateMeetupSheet(
                     selectedDate: viewModel.selectedDate,
-                    defaultAddress: "Choose a nearby meeting point",
+                    defaultName: place.map { "\($0.name) Meetup" } ?? "New Meetup",
+                    defaultAddress: place?.address ?? "Choose a nearby meeting point",
                     onCreate: { name, address, date, meetingTime, maxCapacity, price in
-                        if let createdGroup = viewModel.createGroup(
+                        if let created = viewModel.createGroup(
                             name: name,
                             address: address,
                             date: date,
@@ -118,7 +89,7 @@ struct ActivityGroupsView: View {
                             maxCapacity: maxCapacity,
                             price: price
                         ) {
-                            chatPath = [createdGroup.id]
+                            path = [.chat(created.id)]
                         }
                     }
                 )
@@ -132,29 +103,141 @@ struct ActivityGroupsView: View {
                     dismissButton: .default(Text("OK"))
                 )
             }
+        } // NavigationStack
+
+        // Full-screen confirmation popup
+        if let pending = pendingConfirmation {
+            Color.black.opacity(0.4)
+                .ignoresSafeArea()
+                .transition(.opacity)
+
+            GroupActionConfirmationPopup(
+                title: {
+                    if case .join = pending { return "Join Meetup" }
+                    return "Leave Meetup"
+                }(),
+                message: {
+                    if case .join = pending {
+                        return "You will be added to this meetup and can access the group chat."
+                    }
+                    return "You will be removed from the meetup and lose access to the group chat."
+                }(),
+                cancelTitle: "Back",
+                confirmTitle: {
+                    if case .join = pending { return "Join" }
+                    return "Leave"
+                }(),
+                onCancel: { withAnimation { pendingConfirmation = nil } },
+                onConfirm: {
+                    let captured = pending
+                    withAnimation { pendingConfirmation = nil }
+                    switch captured {
+                    case .join(let group):
+                        if let joined = viewModel.joinGroup(group) {
+                            path.append(.chat(joined.id))
+                        }
+                    case .leave(let group):
+                        viewModel.leaveGroup(group)
+                    }
+                }
+            )
+            .transition(.scale(scale: 0.95).combined(with: .opacity))
+        }
+
+        } // ZStack
+    }
+
+    // MARK: - Subviews
+
+    private var dateAndCreateRow: some View {
+        VStack(spacing: 12) {
+            Text("Select Available Date")
+                .font(.headline)
+                .foregroundStyle(AppColors.primaryText)
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+            HStack(spacing: 12) {
+                Button(action: { showDatePicker = true }) {
+                    HStack {
+                        Image(systemName: "calendar")
+                            .foregroundStyle(AppColors.accent)
+                        Text(
+                            viewModel.selectedDate.formatted(
+                                date: .abbreviated, time: .omitted
+                            )
+                        )
+                        .foregroundStyle(AppColors.primaryText)
+                        Spacer()
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 10)
+                    .background(Color(UIColor.secondarySystemBackground))
+                    .cornerRadius(8)
+                }
+
+                Button(action: { showCreateMeetup = true }) {
+                    HStack(spacing: 8) {
+                        Image(systemName: "plus")
+                        Text("Create")
+                    }
+                    .font(.body)
+                    .fontWeight(.semibold)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 10)
+                    .background(AppColors.accent)
+                    .foregroundStyle(.white)
+                    .cornerRadius(8)
+                }
+            }
         }
     }
 
-    private func navigateToChat(afterJoining group: ActivityGroup) {
-        if let joinedGroup = viewModel.joinGroup(group) {
-            chatPath = [joinedGroup.id]
+    private var emptyState: some View {
+        VStack(spacing: 12) {
+            Image(systemName: "calendar.badge.exclamationmark")
+                .font(.system(size: 32))
+                .foregroundStyle(AppColors.secondaryText)
+            Text("No meetups available")
+                .font(.body)
+                .foregroundStyle(AppColors.secondaryText)
+            Text("Create one for this date")
+                .font(.caption)
+                .foregroundStyle(AppColors.secondaryText)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 40)
+    }
+
+    private var groupsList: some View {
+        ScrollView(showsIndicators: false) {
+            VStack(spacing: 12) {
+                ForEach(viewModel.availableGroups) { group in
+                    GroupRowView(
+                        group: group,
+                        hasJoined: viewModel.hasJoinedGroup(group),
+                        onJoinTapped: { withAnimation { pendingConfirmation = .join(group) } },
+                        onLeaveTapped: { withAnimation { pendingConfirmation = .leave(group) } },
+                        onCardTapped: { path.append(.detail(group.id)) }
+                    )
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
         }
     }
 }
+
+// MARK: - Group Row
 
 struct GroupRowView: View {
     let group: ActivityGroup
     let hasJoined: Bool
     let onJoinTapped: () -> Void
     let onLeaveTapped: () -> Void
-    @State private var showLeaveConfirmation = false
-    @State private var pendingAction: PendingAction?
+    let onCardTapped: () -> Void
+
     @State private var selectedMemberProfile: UserProfile?
     @State private var showProfileDetail = false
-
-    private enum PendingAction {
-        case leave
-    }
 
     private enum Slot: Identifiable {
         case member(GroupMember)
@@ -162,129 +245,79 @@ struct GroupRowView: View {
 
         var id: String {
             switch self {
-            case .member(let member):
-                return member.id.uuidString
-            case .available(let index):
-                return "available-\(index)"
+            case .member(let m): return m.id.uuidString
+            case .available(let i): return "available-\(i)"
             }
         }
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 12) {
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(group.name)
+                    .font(.headline)
+                    .fontWeight(.bold)
+                    .foregroundStyle(AppColors.primaryText)
+
+                HStack(spacing: 6) {
+                    Image(systemName: "clock")
+                    Text(group.meetingTime)
+                }
+                .font(.caption)
+                .foregroundStyle(AppColors.secondaryText)
+            }
+
+            Divider()
+
             HStack(alignment: .center, spacing: 4) {
                 VStack(alignment: .leading, spacing: 8) {
-                    ForEach(leftSlots) { slot in
-                        attendeeRow(for: slot)
-                    }
+                    ForEach(leftSlots) { slot in attendeeRow(for: slot) }
                 }
 
                 if !rightSlots.isEmpty {
                     VStack(alignment: .leading, spacing: 8) {
-                        ForEach(rightSlots) { slot in
-                            attendeeRow(for: slot)
-                        }
+                        ForEach(rightSlots) { slot in attendeeRow(for: slot) }
                     }
                 }
 
                 VStack(spacing: 12) {
                     Spacer(minLength: 0)
 
-                    Button(action: {
-                        withAnimation(
-                            .spring(response: 0.35, dampingFraction: 0.75)
-                        ) {
-                            if hasJoined {
-                                pendingAction = .leave
-                            } else if !group.isFull {
-                                onJoinTapped()
-                            }
+                    Button {
+                        if hasJoined {
+                            onLeaveTapped()
+                        } else if !group.isFull {
+                            onJoinTapped()
                         }
-                    }) {
+                    } label: {
                         Text(actionTitle)
                             .font(.system(size: 18, weight: .medium))
-                            .frame(maxWidth: .infinity)
                             .frame(width: 80, height: 36)
                             .background(actionBackground)
                             .foregroundStyle(actionForeground)
                             .clipShape(Capsule())
-                            .shadow(
-                                color: .black.opacity(0.18),
-                                radius: 14,
-                                x: 0,
-                                y: 8
-                            )
                     }
                     .disabled(group.isFull && !hasJoined)
+                    .buttonStyle(.plain)
 
                     Text("Max. \(group.maxCapacity) People")
                         .font(.caption)
                         .foregroundStyle(AppColors.secondaryText)
-                        .frame(maxWidth: .infinity)
+                        .multilineTextAlignment(.center)
 
                     Spacer(minLength: 0)
                 }
                 .frame(width: 100)
             }
-            .frame(maxWidth: .infinity)
         }
         .padding(14)
         .background(Color(UIColor.systemBackground))
-        .border(Color(UIColor.separator), width: 1.5)
-        .cornerRadius(16)
-        .sheet(isPresented: $showProfileDetail) {
-            if let profile = selectedMemberProfile {
-                ProfileDetailView(profile: profile)
-                    .presentationDetents([.large])
-                    .presentationDragIndicator(.hidden)
-            }
-        }
-        .sheet(isPresented: $showLeaveConfirmation) {
-            LeaveGroupConfirmationView()
-                .presentationDetents([.large])
-                .presentationDragIndicator(.hidden)
-        }
-        .overlay {
-            if pendingAction != nil {
-                GroupActionConfirmationPopup(
-                    title: "Do you want to leave this group?",
-                    message: "You will be removed from the attendee list.",
-                    cancelTitle: "No",
-                    confirmTitle: "Leave",
-                    onCancel: {
-                        withAnimation(
-                            .spring(response: 0.35, dampingFraction: 0.75)
-                        ) {
-                            self.pendingAction = nil
-                        }
-                    },
-                    onConfirm: {
-                        withAnimation(
-                            .spring(response: 0.35, dampingFraction: 0.75)
-                        ) {
-                            self.pendingAction = nil
-                        }
-                        onLeaveTapped()
-
-                        DispatchQueue.main.asyncAfter(
-                            deadline: .now() + 0.2
-                        ) {
-                            showLeaveConfirmation = true
-                        }
-                    }
-                )
-                .scaleEffect(1.0)
-                .transition(
-                    .asymmetric(
-                        insertion: .scale(scale: 0.8)
-                            .combined(with: .opacity),
-                        removal: .scale(scale: 0.9)
-                            .combined(with: .opacity)
-                    )
-                )
-            }
-        }
+        .contentShape(Rectangle())
+        .onTapGesture { onCardTapped() }
     }
+
+    // MARK: Helpers
 
     private var actionTitle: String {
         if hasJoined { return "Leave" }
@@ -293,47 +326,30 @@ struct GroupRowView: View {
     }
 
     private var actionBackground: Color {
-        if hasJoined { return Color.red.opacity(0.9)}
+        if hasJoined { return Color.red.opacity(0.9) }
         if group.isFull { return Color.gray.opacity(0.28) }
         return AppColors.accent
     }
 
     private var actionForeground: Color {
-        if hasJoined { return .white }
-        if group.isFull { return .gray }
-        return .white
+        hasJoined || (!group.isFull) ? .white : .gray
     }
+
+    private var slots: [Slot] {
+        (0..<group.maxCapacity).map { i in
+            i < group.members.count ? .member(group.members[i]) : .available(i)
+        }
+    }
+
+    private var leftSlots: [Slot] { Array(slots.prefix(3)) }
+    private var rightSlots: [Slot] { Array(slots.dropFirst(3)) }
 
     private func firstName(for fullName: String) -> String {
         fullName.split(separator: " ").first.map(String.init) ?? fullName
     }
 
-    private var slots: [Slot] {
-        (0..<group.maxCapacity).map { index in
-            if index < group.members.count {
-                return .member(group.members[index])
-            } else {
-                return .available(index)
-            }
-        }
-    }
-
-    private var leftSlots: [Slot] {
-        switch group.maxCapacity {
-        case 4:
-            return Array(slots.prefix(2))
-        default:
-            return Array(slots.prefix(min(3, slots.count)))
-        }
-    }
-
-    private var rightSlots: [Slot] {
-        switch group.maxCapacity {
-        case 4:
-            return Array(slots.dropFirst(2))
-        default:
-            return Array(slots.dropFirst(3))
-        }
+    private func firstInitial(for fullName: String) -> String {
+        String(fullName.split(separator: " ").first?.prefix(1) ?? "")
     }
 
     @ViewBuilder
@@ -363,15 +379,13 @@ struct GroupRowView: View {
             .padding(.vertical, 8)
             .frame(maxWidth: .infinity, minHeight: 36, alignment: .leading)
             .background(Color(UIColor.systemGray5))
-            .overlay(
-                Capsule()
-                    .stroke(Color(UIColor.systemGray3), lineWidth: 1.5)
-            )
+            .overlay(Capsule().stroke(Color(UIColor.systemGray3), lineWidth: 1.5))
             .clipShape(Capsule())
             .onTapGesture {
                 selectedMemberProfile = UserProfile.profile(for: member.name)
                 showProfileDetail = true
             }
+
         case .available:
             HStack {
                 Text("Available")
@@ -383,32 +397,27 @@ struct GroupRowView: View {
             .padding(.vertical, 8)
             .frame(maxWidth: .infinity, minHeight: 36, alignment: .leading)
             .background(Color(UIColor.systemGray5))
-            .overlay(
-                Capsule()
-                    .stroke(Color(UIColor.systemGray3), lineWidth: 1.5)
-            )
+            .overlay(Capsule().stroke(Color(UIColor.systemGray3), lineWidth: 1.5))
             .clipShape(Capsule())
         }
     }
 
     private func memberColor(for colorName: String) -> Color {
         switch colorName {
-        case "blue": return Color.blue
-        case "green": return Color.green
-        case "purple": return Color.purple
-        case "orange": return Color.orange
-        case "red": return Color.red
-        case "yellow": return Color.yellow
-        case "cyan": return Color.cyan
+        case "blue": return .blue
+        case "green": return .green
+        case "purple": return .purple
+        case "orange": return .orange
+        case "red": return .red
+        case "yellow": return .yellow
+        case "cyan": return .cyan
         case "teal": return AppColors.accent
-        default: return Color.gray
+        default: return .gray
         }
     }
-
-    private func firstInitial(for fullName: String) -> String {
-        String(fullName.split(separator: " ").first?.prefix(1) ?? "")
-    }
 }
+
+// MARK: - Supporting sheets & popups (unchanged)
 
 struct LeaveGroupConfirmationView: View {
     @Environment(\.dismiss) private var dismiss
@@ -416,12 +425,7 @@ struct LeaveGroupConfirmationView: View {
     var body: some View {
         ZStack {
             LinearGradient(
-                gradient: Gradient(
-                    colors: [
-                        Color.red,
-                        Color.red.opacity(0.8),
-                    ]
-                ),
+                gradient: Gradient(colors: [Color.red, Color.red.opacity(0.8)]),
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             )
@@ -431,7 +435,6 @@ struct LeaveGroupConfirmationView: View {
                 Spacer()
 
                 VStack(spacing: 24) {
-
                     ZStack {
                         Circle()
                             .fill(Color.white.opacity(0.2))
@@ -447,11 +450,9 @@ struct LeaveGroupConfirmationView: View {
                             .fill(.white)
                             .frame(width: 100, height: 100)
                             .overlay(
-                                Image(
-                                    systemName: "person.crop.circle.badge.minus"
-                                )
-                                .font(.system(size: 42, weight: .bold))
-                                .foregroundStyle(.red)
+                                Image(systemName: "person.crop.circle.badge.minus")
+                                    .font(.system(size: 42, weight: .bold))
+                                    .foregroundStyle(.red)
                             )
                     }
                     .frame(height: 180)
@@ -462,20 +463,16 @@ struct LeaveGroupConfirmationView: View {
                             .fontWeight(.bold)
                             .foregroundStyle(.white)
 
-                        Text(
-                            "Your reservation has been cancelled and you have been removed from the attendee list."
-                        )
-                        .multilineTextAlignment(.center)
-                        .foregroundStyle(.white.opacity(0.9))
+                        Text("Your reservation has been cancelled and you have been removed from the attendee list.")
+                            .multilineTextAlignment(.center)
+                            .foregroundStyle(.white.opacity(0.9))
                     }
                     .padding(.horizontal)
                 }
 
                 Spacer()
 
-                Button {
-                    dismiss()
-                } label: {
+                Button { dismiss() } label: {
                     Text("Back to Groups")
                         .font(.body)
                         .fontWeight(.semibold)
@@ -556,27 +553,13 @@ struct CreateMeetupSheet: View {
     @State private var maxCapacity: Int
     @State private var price: String
 
-    let onCreate: (
-        String,
-        String,
-        Date,
-        String,
-        Int,
-        String
-    ) -> Void
+    let onCreate: (String, String, Date, String, Int, String) -> Void
 
     init(
         selectedDate: Date,
         defaultName: String = "New Meetup",
         defaultAddress: String,
-        onCreate: @escaping (
-            String,
-            String,
-            Date,
-            String,
-            Int,
-            String
-        ) -> Void
+        onCreate: @escaping (String, String, Date, String, Int, String) -> Void
     ) {
         _name = State(initialValue: defaultName)
         _address = State(initialValue: defaultAddress)
@@ -591,17 +574,8 @@ struct CreateMeetupSheet: View {
         NavigationStack {
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 18) {
-                    field(
-                        title: "Name",
-                        placeholder: "Meetup name",
-                        text: $name
-                    )
-
-                    field(
-                        title: "Meeting Point",
-                        placeholder: "Address",
-                        text: $address
-                    )
+                    field(title: "Name", placeholder: "Meetup name", text: $name)
+                    field(title: "Meeting Point", placeholder: "Address", text: $address)
 
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Date")
@@ -609,20 +583,12 @@ struct CreateMeetupSheet: View {
                             .fontWeight(.semibold)
                             .foregroundStyle(AppColors.secondaryText)
 
-                        DatePicker(
-                            "Date",
-                            selection: $date,
-                            displayedComponents: [.date]
-                        )
-                        .labelsHidden()
-                        .datePickerStyle(.compact)
+                        DatePicker("Date", selection: $date, displayedComponents: [.date])
+                            .labelsHidden()
+                            .datePickerStyle(.compact)
                     }
 
-                    field(
-                        title: "Time",
-                        placeholder: "09:00 - 11:00 GMT+8",
-                        text: $meetingTime
-                    )
+                    field(title: "Time", placeholder: "09:00 - 11:00 GMT+8", text: $meetingTime)
 
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Capacity")
@@ -630,20 +596,12 @@ struct CreateMeetupSheet: View {
                             .fontWeight(.semibold)
                             .foregroundStyle(AppColors.secondaryText)
 
-                        Stepper(
-                            "\(maxCapacity) people",
-                            value: $maxCapacity,
-                            in: 2...8
-                        )
-                        .font(.body)
-                        .foregroundStyle(AppColors.primaryText)
+                        Stepper("\(maxCapacity) people", value: $maxCapacity, in: 2...8)
+                            .font(.body)
+                            .foregroundStyle(AppColors.primaryText)
                     }
 
-                    field(
-                        title: "Price",
-                        placeholder: "Rp0",
-                        text: $price
-                    )
+                    field(title: "Price", placeholder: "Rp0", text: $price)
                 }
                 .padding(20)
             }
@@ -654,16 +612,11 @@ struct CreateMeetupSheet: View {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
                 }
-
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Create") {
                         onCreate(
-                            trimmed(name),
-                            trimmed(address),
-                            date,
-                            trimmed(meetingTime),
-                            maxCapacity,
-                            trimmed(price)
+                            trimmed(name), trimmed(address), date,
+                            trimmed(meetingTime), maxCapacity, trimmed(price)
                         )
                         dismiss()
                     }
@@ -674,21 +627,15 @@ struct CreateMeetupSheet: View {
     }
 
     private var canCreate: Bool {
-        !trimmed(name).isEmpty
-            && !trimmed(address).isEmpty
-            && !trimmed(meetingTime).isEmpty
-            && !trimmed(price).isEmpty
+        !trimmed(name).isEmpty && !trimmed(address).isEmpty
+            && !trimmed(meetingTime).isEmpty && !trimmed(price).isEmpty
     }
 
     private func trimmed(_ value: String) -> String {
         value.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
-    private func field(
-        title: String,
-        placeholder: String,
-        text: Binding<String>
-    ) -> some View {
+    private func field(title: String, placeholder: String, text: Binding<String>) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(title)
                 .font(.caption)
@@ -704,6 +651,63 @@ struct CreateMeetupSheet: View {
         }
     }
 }
+
+struct GroupDetailView: View {
+    let group: ActivityGroup
+    let hasJoined: Bool
+    // Uses parent's pendingConfirmation so the same full-screen popup appears
+    @Binding var pendingConfirmation: ActivityGroupsView.PendingConfirmation?
+    let openChat: () -> Void
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 20) {
+                Text(group.name)
+                    .font(.largeTitle)
+                    .fontWeight(.bold)
+
+                Label(group.meetingTime, systemImage: "clock")
+                Label(group.address, systemImage: "mappin")
+                Label("\(group.members.count)/\(group.maxCapacity) Participants", systemImage: "person.3")
+
+                Divider()
+
+                Text("Participants").font(.headline)
+                ForEach(group.members) { member in Text(member.name) }
+
+                Divider()
+
+                if hasJoined {
+                    Button("Leave Meetup") {
+                        withAnimation { pendingConfirmation = .leave(group) }
+                    }
+                    .buttonStyle(.borderedProminent)
+
+                    Button("Open Group Chat") { openChat() }
+
+                } else {
+                    Button("Join Meetup") {
+                        guard !group.isFull else { return }
+                        withAnimation { pendingConfirmation = .join(group) }
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(group.isFull)
+
+                    if group.isFull {
+                        Text("This meetup is full")
+                            .font(.caption)
+                            .foregroundStyle(AppColors.secondaryText)
+                    }
+                }
+            }
+            .padding()
+        }
+        .navigationTitle("Meetup")
+        .navigationBarTitleDisplayMode(.inline)
+    }
+}
+
+// JoinMeetupConfirmationView and LeaveMeetupConfirmationView removed — popup is now handled by ActivityGroupsView's ZStack
 
 struct DatePickerSheetContent: View {
     @Binding var isPresented: Bool
@@ -722,13 +726,9 @@ struct DatePickerSheetContent: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.horizontal, 16)
 
-            DatePicker(
-                "Choose a date",
-                selection: $selectedDate,
-                displayedComponents: [.date]
-            )
-            .datePickerStyle(.graphical)
-            .padding(.horizontal, 16)
+            DatePicker("Choose a date", selection: $selectedDate, displayedComponents: [.date])
+                .datePickerStyle(.graphical)
+                .padding(.horizontal, 16)
 
             Button(action: { isPresented = false }) {
                 Text("Done")

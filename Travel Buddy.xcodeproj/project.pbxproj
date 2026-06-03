@@ -28,7 +28,7 @@
 		6CB899552FBD7F9F00D989D1 /* Travel Buddy.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Travel Buddy.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		6CB899622FBD7FA100D989D1 /* Travel BuddyTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Travel BuddyTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		6CB8996C2FBD7FA100D989D1 /* Travel BuddyUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Travel BuddyUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
-		6CC336322FCEDB83001F1EA4 /* Secrets.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Secrets.xcconfig; sourceTree = "<group>"; };
+		6CC3375D2FCFF326001F1EA4 /* Secrets.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Secrets.xcconfig; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -78,7 +78,7 @@
 			isa = PBXGroup;
 			children = (
 				6CB8990000000000000000A2 /* Secrets.example.xcconfig */,
-				6CC336322FCEDB83001F1EA4 /* Secrets.xcconfig */,
+				6CC3375D2FCFF326001F1EA4 /* Secrets.xcconfig */,
 				6CB899572FBD7F9F00D989D1 /* Travel Buddy */,
 				6CB899652FBD7FA100D989D1 /* Travel BuddyTests */,
 				6CB8996F2FBD7FA100D989D1 /* Travel BuddyUITests */,
@@ -275,7 +275,7 @@
 /* Begin XCBuildConfiguration section */
 		6CB899742FBD7FA100D989D1 /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 6CC336322FCEDB83001F1EA4 /* Secrets.xcconfig */;
+			baseConfigurationReference = 6CC3375D2FCFF326001F1EA4 /* Secrets.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
@@ -339,7 +339,7 @@
 		};
 		6CB899752FBD7FA100D989D1 /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 6CC336322FCEDB83001F1EA4 /* Secrets.xcconfig */;
+			baseConfigurationReference = 6CC3375D2FCFF326001F1EA4 /* Secrets.xcconfig */;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
@@ -396,12 +396,13 @@
 		};
 		6CB899772FBD7FA100D989D1 /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 6CC3375D2FCFF326001F1EA4 /* Secrets.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = NL42U265A4;
+				DEVELOPMENT_TEAM = Q7PFUBX7QB;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "TravelBuddy-Info.plist";
@@ -417,7 +418,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "com.Gloob-Travel-Buddy";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.Travel-Buddy";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
@@ -431,12 +432,13 @@
 		};
 		6CB899782FBD7FA100D989D1 /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 6CC3375D2FCFF326001F1EA4 /* Secrets.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = NL42U265A4;
+				DEVELOPMENT_TEAM = Q7PFUBX7QB;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "TravelBuddy-Info.plist";
@@ -452,7 +454,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "com.Gloob-Travel-Buddy";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.Travel-Buddy";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
