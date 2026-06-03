@@ -14,24 +14,24 @@ struct AppColors {
             traitCollection.userInterfaceStyle == .dark ? .white : .black
         })
     }
-    
+
     static var secondaryText: Color {
         Color(UIColor { traitCollection in
             traitCollection.userInterfaceStyle == .dark ? .lightGray : .gray
         })
     }
-    
+
     // MARK: - Background Colors
     static var background: Color {
         Color(UIColor { traitCollection in
             traitCollection.userInterfaceStyle == .dark ? .black : .white
         })
     }
-    
+
     static var welcomeBackground: Color {
         Color.black
     }
-    
+
     // MARK: - Form Colors
     static var formBackground: Color {
         Color(UIColor { traitCollection in
@@ -42,7 +42,7 @@ struct AppColors {
             }
         })
     }
-    
+
     static var formBorder: Color {
         Color(UIColor { traitCollection in
             if traitCollection.userInterfaceStyle == .dark {
@@ -52,7 +52,7 @@ struct AppColors {
             }
         })
     }
-    
+
     static var textFieldBackground: Color {
         Color(UIColor { traitCollection in
             if traitCollection.userInterfaceStyle == .dark {
@@ -62,7 +62,7 @@ struct AppColors {
             }
         })
     }
-    
+
     static var textFieldBorder: Color {
         Color(UIColor { traitCollection in
             if traitCollection.userInterfaceStyle == .dark {
@@ -72,21 +72,33 @@ struct AppColors {
             }
         })
     }
-    
+
     // MARK: - Accent Colors
     static var accent: Color {
         return .teal
     }
-    
+
     static var accentDisabled: Color {
         return .teal.opacity(0.4)
     }
-    
-    // MARK: - Special Colors
+
+    // Profile colors
+    static var brandTeal: Color {
+        Color(red: 0.02, green: 0.39, blue: 0.48)
+    }
+
+    static var coverBackground: Color {
+        Color(red: 0.84, green: 0.84, blue: 0.84)
+    }
+
+    static var avatarPlaceholder: Color {
+        Color(red: 0.90, green: 0.91, blue: 0.92)
+    }
+
     static var pinColor: Color {
         Color(red: 0.9, green: 0.2, blue: 0.2)
     }
-    
+
     static var pinGlow: Color {
         Color(red: 1.0, green: 0.3, blue: 0.3)
     }
