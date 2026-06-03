@@ -8,8 +8,38 @@ struct UserProfile: Identifiable {
     let languages: [String]
     let country: String
     let profileImageName: String
-    let countryFlag: String
+    let languageFlag: String
     let isFavorite: Bool
+    let bio: String
+        let aboutMe: String
+        let countryCode: String
+        let instagramHandle: String
+        let twitterHandle: String
+}
+
+// data dummy before using SwiftData
+extension UserProfile {
+    static let currentUserMock = UserProfile(
+        name: "Mark",
+        age: 25,
+        interests: ["Photography", "Museums", "Music"],
+        languages: ["Malaysia", "Indonesia"],
+        country: "Malaysia",
+        profileImageName: "mark_profile",
+        languageFlag: "🇲🇾",
+        isFavorite: false,
+        bio: "Chasing sunsets and new stories 🌍",
+        aboutMe: """
+        I love exploring new places, trying local food, and meeting new people \
+        along the way. Traveling makes me feel alive and gives me new perspectives \
+        about the world. Usually the one saying “let’s just go” when there’s an \
+        adventure involved. I enjoy nature, city walks, hidden cafes, and \
+        spontaneous plans.
+        """,
+        countryCode: "MYS",
+        instagramHandle: "@markjohn22",
+        twitterHandle: "@jmark22"
+    )
 }
 
 // Mock profiles for group members
@@ -22,8 +52,20 @@ extension UserProfile {
             languages: ["Indonesian", "English"],
             country: "Indonesia",
             profileImageName: "person.crop.square",
-            countryFlag: "🇮🇩",
-            isFavorite: false
+            languageFlag: "🇮🇩",
+            isFavorite: false,
+            bio: "Chasing sunsets and new stories 🌍",
+            aboutMe: """
+            I love exploring new places, trying local food, and meeting new people \
+            along the way. Traveling makes me feel alive and gives me new perspectives \
+            about the world. Usually the one saying “let’s just go” when there’s an \
+            adventure involved. I enjoy nature, city walks, hidden cafes, and \
+            spontaneous plans.
+            """,
+            countryCode: "MYS",
+            instagramHandle: "@markjohn22",
+            twitterHandle: "@jmark22"
+
         ),
         "Rani": UserProfile(
             name: "Rani",
@@ -32,8 +74,20 @@ extension UserProfile {
             languages: ["Indonesian", "Chinese"],
             country: "Indonesia",
             profileImageName: "person.crop.square",
-            countryFlag: "🇮🇩",
-            isFavorite: false
+            languageFlag: "🇮🇩",
+            isFavorite: false,
+            bio: "Chasing sunsets and new stories 🌍",
+            aboutMe: """
+            I love exploring new places, trying local food, and meeting new people \
+            along the way. Traveling makes me feel alive and gives me new perspectives \
+            about the world. Usually the one saying “let’s just go” when there’s an \
+            adventure involved. I enjoy nature, city walks, hidden cafes, and \
+            spontaneous plans.
+            """,
+            countryCode: "MYS",
+            instagramHandle: "@markjohn22",
+            twitterHandle: "@jmark22"
+
         ),
         "Jody": UserProfile(
             name: "Jody",
@@ -42,8 +96,20 @@ extension UserProfile {
             languages: ["English", "Indonesian"],
             country: "Malaysia",
             profileImageName: "person.crop.square",
-            countryFlag: "🇲🇾",
-            isFavorite: false
+            languageFlag: "🇲🇾",
+            isFavorite: false,
+            bio: "Chasing sunsets and new stories 🌍",
+            aboutMe: """
+            I love exploring new places, trying local food, and meeting new people \
+            along the way. Traveling makes me feel alive and gives me new perspectives \
+            about the world. Usually the one saying “let’s just go” when there’s an \
+            adventure involved. I enjoy nature, city walks, hidden cafes, and \
+            spontaneous plans.
+            """,
+            countryCode: "MYS",
+            instagramHandle: "@markjohn22",
+            twitterHandle: "@jmark22"
+
         ),
         "Balqis": UserProfile(
             name: "Balqis",
@@ -52,8 +118,20 @@ extension UserProfile {
             languages: ["Indonesian", "English", "Arabic"],
             country: "Indonesia",
             profileImageName: "person.crop.square",
-            countryFlag: "🇮🇩",
-            isFavorite: false
+            languageFlag: "🇮🇩",
+            isFavorite: false,
+            bio: "Chasing sunsets and new stories 🌍",
+            aboutMe: """
+            I love exploring new places, trying local food, and meeting new people \
+            along the way. Traveling makes me feel alive and gives me new perspectives \
+            about the world. Usually the one saying “let’s just go” when there’s an \
+            adventure involved. I enjoy nature, city walks, hidden cafes, and \
+            spontaneous plans.
+            """,
+            countryCode: "MYS",
+            instagramHandle: "@markjohn22",
+            twitterHandle: "@jmark22"
+
         ),
         "Dodo": UserProfile(
             name: "Dodo",
@@ -62,8 +140,20 @@ extension UserProfile {
             languages: ["Indonesian", "English"],
             country: "Indonesia",
             profileImageName: "person.crop.square",
-            countryFlag: "🇮🇩",
-            isFavorite: false
+            languageFlag: "🇮🇩",
+            isFavorite: false,
+            bio: "Chasing sunsets and new stories 🌍",
+            aboutMe: """
+            I love exploring new places, trying local food, and meeting new people \
+            along the way. Traveling makes me feel alive and gives me new perspectives \
+            about the world. Usually the one saying “let’s just go” when there’s an \
+            adventure involved. I enjoy nature, city walks, hidden cafes, and \
+            spontaneous plans.
+            """,
+            countryCode: "MYS",
+            instagramHandle: "@markjohn22",
+            twitterHandle: "@jmark22"
+
         ),
         "Eka": UserProfile(
             name: "Eka",
@@ -72,8 +162,20 @@ extension UserProfile {
             languages: ["Indonesian"],
             country: "Indonesia",
             profileImageName: "person.crop.square",
-            countryFlag: "🇮🇩",
-            isFavorite: false
+            languageFlag: "🇮🇩",
+            isFavorite: false,
+            bio: "Chasing sunsets and new stories 🌍",
+            aboutMe: """
+            I love exploring new places, trying local food, and meeting new people \
+            along the way. Traveling makes me feel alive and gives me new perspectives \
+            about the world. Usually the one saying “let’s just go” when there’s an \
+            adventure involved. I enjoy nature, city walks, hidden cafes, and \
+            spontaneous plans.
+            """,
+            countryCode: "MYS",
+            instagramHandle: "@markjohn22",
+            twitterHandle: "@jmark22"
+
         ),
         "Fira": UserProfile(
             name: "Fira",
@@ -82,8 +184,20 @@ extension UserProfile {
             languages: ["Indonesian", "English"],
             country: "Indonesia",
             profileImageName: "person.crop.square",
-            countryFlag: "🇮🇩",
-            isFavorite: false
+            languageFlag: "🇮🇩",
+            isFavorite: false,
+            bio: "Chasing sunsets and new stories 🌍",
+            aboutMe: """
+            I love exploring new places, trying local food, and meeting new people \
+            along the way. Traveling makes me feel alive and gives me new perspectives \
+            about the world. Usually the one saying “let’s just go” when there’s an \
+            adventure involved. I enjoy nature, city walks, hidden cafes, and \
+            spontaneous plans.
+            """,
+            countryCode: "MYS",
+            instagramHandle: "@markjohn22",
+            twitterHandle: "@jmark22"
+
         ),
         "John": UserProfile(
             name: "John",
@@ -92,8 +206,20 @@ extension UserProfile {
             languages: ["English", "Indonesian"],
             country: "Malaysia",
             profileImageName: "person.crop.square",
-            countryFlag: "🇲🇾",
-            isFavorite: false
+            languageFlag: "🇲🇾",
+            isFavorite: false,
+            bio: "Chasing sunsets and new stories 🌍",
+            aboutMe: """
+            I love exploring new places, trying local food, and meeting new people \
+            along the way. Traveling makes me feel alive and gives me new perspectives \
+            about the world. Usually the one saying “let’s just go” when there’s an \
+            adventure involved. I enjoy nature, city walks, hidden cafes, and \
+            spontaneous plans.
+            """,
+            countryCode: "MYS",
+            instagramHandle: "@markjohn22",
+            twitterHandle: "@jmark22"
+
         ),
         "Maria": UserProfile(
             name: "Maria",
@@ -102,8 +228,20 @@ extension UserProfile {
             languages: ["English", "Spanish", "Indonesian"],
             country: "Indonesia",
             profileImageName: "person.crop.square",
-            countryFlag: "🇮🇩",
-            isFavorite: false
+            languageFlag: "🇮🇩",
+            isFavorite: false,
+            bio: "Chasing sunsets and new stories 🌍",
+            aboutMe: """
+            I love exploring new places, trying local food, and meeting new people \
+            along the way. Traveling makes me feel alive and gives me new perspectives \
+            about the world. Usually the one saying “let’s just go” when there’s an \
+            adventure involved. I enjoy nature, city walks, hidden cafes, and \
+            spontaneous plans.
+            """,
+            countryCode: "MYS",
+            instagramHandle: "@markjohn22",
+            twitterHandle: "@jmark22"
+
         ),
         "Budi": UserProfile(
             name: "Budi",
@@ -112,8 +250,20 @@ extension UserProfile {
             languages: ["Indonesian", "English"],
             country: "Indonesia",
             profileImageName: "person.crop.square",
-            countryFlag: "🇮🇩",
-            isFavorite: false
+            languageFlag: "🇮🇩",
+            isFavorite: false,
+            bio: "Chasing sunsets and new stories 🌍",
+            aboutMe: """
+            I love exploring new places, trying local food, and meeting new people \
+            along the way. Traveling makes me feel alive and gives me new perspectives \
+            about the world. Usually the one saying “let’s just go” when there’s an \
+            adventure involved. I enjoy nature, city walks, hidden cafes, and \
+            spontaneous plans.
+            """,
+            countryCode: "MYS",
+            instagramHandle: "@markjohn22",
+            twitterHandle: "@jmark22"
+
         ),
         "Siti": UserProfile(
             name: "Siti",
@@ -122,8 +272,20 @@ extension UserProfile {
             languages: ["Indonesian", "English"],
             country: "Indonesia",
             profileImageName: "person.crop.square",
-            countryFlag: "🇮🇩",
-            isFavorite: false
+            languageFlag: "🇮🇩",
+            isFavorite: false,
+            bio: "Chasing sunsets and new stories 🌍",
+            aboutMe: """
+            I love exploring new places, trying local food, and meeting new people \
+            along the way. Traveling makes me feel alive and gives me new perspectives \
+            about the world. Usually the one saying “let’s just go” when there’s an \
+            adventure involved. I enjoy nature, city walks, hidden cafes, and \
+            spontaneous plans.
+            """,
+            countryCode: "MYS",
+            instagramHandle: "@markjohn22",
+            twitterHandle: "@jmark22"
+
         ),
         "Ahmad": UserProfile(
             name: "Ahmad",
@@ -132,8 +294,20 @@ extension UserProfile {
             languages: ["Indonesian", "English", "Arabic"],
             country: "Indonesia",
             profileImageName: "person.crop.square",
-            countryFlag: "🇮🇩",
-            isFavorite: false
+            languageFlag: "🇮🇩",
+            isFavorite: false,
+            bio: "Chasing sunsets and new stories 🌍",
+            aboutMe: """
+            I love exploring new places, trying local food, and meeting new people \
+            along the way. Traveling makes me feel alive and gives me new perspectives \
+            about the world. Usually the one saying “let’s just go” when there’s an \
+            adventure involved. I enjoy nature, city walks, hidden cafes, and \
+            spontaneous plans.
+            """,
+            countryCode: "MYS",
+            instagramHandle: "@markjohn22",
+            twitterHandle: "@jmark22"
+
         ),
     ]
     
@@ -145,8 +319,20 @@ extension UserProfile {
             languages: ["Indonesian", "English"],
             country: "Indonesia",
             profileImageName: "person.crop.square",
-            countryFlag: "🇮🇩",
-            isFavorite: false
+            languageFlag: "🇮🇩",
+            isFavorite: false,
+            bio: "Chasing sunsets and new stories 🌍",
+            aboutMe: """
+            I love exploring new places, trying local food, and meeting new people \
+            along the way. Traveling makes me feel alive and gives me new perspectives \
+            about the world. Usually the one saying “let’s just go” when there’s an \
+            adventure involved. I enjoy nature, city walks, hidden cafes, and \
+            spontaneous plans.
+            """,
+            countryCode: "MYS",
+            instagramHandle: "@markjohn22",
+            twitterHandle: "@jmark22"
+
         )
     }
 }
