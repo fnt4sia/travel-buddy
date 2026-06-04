@@ -23,8 +23,12 @@ struct UnifiedOnboardingView: View {
     @State private var firstName = ""
     @State private var ageText = ""
     @State private var countryOrigin = ""
-    @State private var selectedInterests = Set(CurrentUserProfileStore.defaultInterests)
-    @State private var selectedLanguages = Set(CurrentUserProfileStore.defaultLanguages)
+    @State private var selectedInterests = Set(
+        CurrentUserProfileStore.defaultInterests
+    )
+    @State private var selectedLanguages = Set(
+        CurrentUserProfileStore.defaultLanguages
+    )
     @State private var city: String?
     @State private var userLocation: CLLocation?
     @State private var keyboardHeight: CGFloat = 0
@@ -47,6 +51,8 @@ struct UnifiedOnboardingView: View {
             mascotLayer
                 .ignoresSafeArea()
 
+            
+            
             // Content overlay
             if currentStep == .welcome {
                 VStack(spacing: 0) {
@@ -112,13 +118,17 @@ struct UnifiedOnboardingView: View {
         }
         .navigationBarHidden(true)
         .onAppear {
-            withAnimation(.easeInOut(duration: 5.8).repeatForever(autoreverses: true)) {
+            withAnimation(
+                .easeInOut(duration: 5.8).repeatForever(autoreverses: true)
+            ) {
                 mascotIdle = true
             }
         }
         .onChange(of: currentStep) { _, newStep in
             let shouldMoveOffscreen = newStep != .welcome
-            withAnimation(.easeInOut(duration: shouldMoveOffscreen ? 1.15 : 0.85)) {
+            withAnimation(
+                .easeInOut(duration: shouldMoveOffscreen ? 1.15 : 0.85)
+            ) {
                 mascotsAreOffscreen = shouldMoveOffscreen
             }
         }
@@ -335,7 +345,9 @@ struct UnifiedOnboardingView: View {
                     options: CurrentUserProfileStore.availableInterests,
                     selection: selectedInterests,
                     onTap: { interest in
-                        withAnimation(.spring(response: 0.25, dampingFraction: 0.82)) {
+                        withAnimation(
+                            .spring(response: 0.25, dampingFraction: 0.82)
+                        ) {
                             if selectedInterests.contains(interest) {
                                 selectedInterests.remove(interest)
                             } else {
@@ -350,7 +362,9 @@ struct UnifiedOnboardingView: View {
                     options: CurrentUserProfileStore.availableLanguages,
                     selection: selectedLanguages,
                     onTap: { language in
-                        withAnimation(.spring(response: 0.25, dampingFraction: 0.82)) {
+                        withAnimation(
+                            .spring(response: 0.25, dampingFraction: 0.82)
+                        ) {
                             if selectedLanguages.contains(language) {
                                 selectedLanguages.remove(language)
                             } else {
@@ -468,7 +482,9 @@ struct UnifiedOnboardingView: View {
                     .resizable()
                     .scaledToFit()
                     .frame(width: min(width * 0.58, 276))
-                    .rotationEffect(.degrees(isWelcomePosition ? (mascotIdle ? 2 : -2) : -8))
+                    .rotationEffect(
+                        .degrees(isWelcomePosition ? (mascotIdle ? 2 : -2) : -8)
+                    )
                     .position(
                         x: isWelcomePosition ? width * 0.68 : width * 0.78,
                         y: isWelcomePosition ? 400 : -320
@@ -482,7 +498,11 @@ struct UnifiedOnboardingView: View {
                     .resizable()
                     .scaledToFit()
                     .frame(width: min(width * 0.42, 184))
-                    .rotationEffect(.degrees(isWelcomePosition ? (mascotIdle ? -4 : -10) : -16))
+                    .rotationEffect(
+                        .degrees(
+                            isWelcomePosition ? (mascotIdle ? -4 : -10) : -16
+                        )
+                    )
                     .position(
                         x: isWelcomePosition ? width * 0.29 : width * 0.26,
                         y: isWelcomePosition ? 550 : -260
@@ -499,10 +519,54 @@ struct UnifiedOnboardingView: View {
     }
 
     private var backgroundView: some View {
-        if currentStep == .welcome {
-            return AnyView(AppColors.welcomeBackground)
-        } else {
-            return AnyView(AppColors.background)
+        let backgroundY: CGFloat = currentStep == .welcome ? 0.38 : 0.62
+
+        return ZStack {
+            AppColors.background
+
+            LinearGradient(
+                colors: [
+                    Color.clear,
+                    AppColors.accent.opacity(0.08),
+                    AppColors.accent.opacity(0.18)
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+
+            RadialGradient(
+                colors: [
+                    AppColors.accent.opacity(0.22),
+                    AppColors.accent.opacity(0.10),
+                    Color.clear
+                ],
+                center: UnitPoint(x: 0.5, y: backgroundY),
+                startRadius: 200,
+                endRadius: 300
+            )
+
+            RadialGradient(
+                colors: [
+                    Color.white.opacity(0.65),
+                    Color.white.opacity(0.25),
+                    Color.clear
+                ],
+                center: .top,
+                startRadius: 80,
+                endRadius: 450
+            )
+            .offset(y: -180)
+
+            RadialGradient(
+                colors: [
+                    Color.black.opacity(0.08),
+                    Color.clear
+                ],
+                center: .top,
+                startRadius: 250,
+                endRadius: 700
+            )
+            .offset(y: -200)
         }
     }
 
@@ -523,14 +587,14 @@ struct UnifiedOnboardingView: View {
 
     private var welcomeContent: some View {
         VStack(spacing: 12) {
-            Text("Welcome to VV!")
+            Text("Welcome to Gloob  !")
                 .font(.title)
                 .fontWeight(.bold)
-                .foregroundColor(.white)
+                .foregroundColor(AppColors.primaryText)
 
             Text("Recommendations and friends\nbased on your preference.")
                 .font(.subheadline)
-                .foregroundColor(.white.opacity(0.7))
+                .foregroundColor(AppColors.secondaryText)
                 .multilineTextAlignment(.center)
 
             Button(action: {
@@ -545,6 +609,20 @@ struct UnifiedOnboardingView: View {
                     .background(AppColors.accent)
                     .foregroundColor(.white)
                     .clipShape(Capsule())
+            }
+            Button(action: {
+                withAnimation(.easeInOut(duration: 0.6)) {
+                    currentStep = .nameInput
+                }
+            }) {
+                Text("I already have an account")
+                    .fontWeight(.semibold)
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(.white)
+                    .foregroundColor(AppColors.accent)
+                    .clipShape(Capsule())
+                    .shadow(radius: 10)
             }
         }
     }
@@ -562,8 +640,12 @@ struct UnifiedOnboardingView: View {
     }
 
     private var parsedAge: Int? {
-        guard let age = Int(ageText.trimmingCharacters(in: .whitespacesAndNewlines)),
-              (13...100).contains(age) else {
+        guard
+            let age = Int(
+                ageText.trimmingCharacters(in: .whitespacesAndNewlines)
+            ),
+            (13...100).contains(age)
+        else {
             return nil
         }
         return age
@@ -571,7 +653,8 @@ struct UnifiedOnboardingView: View {
 
     private var isProfileDetailsReady: Bool {
         parsedAge != nil
-            && !countryOrigin.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            && !countryOrigin.trimmingCharacters(in: .whitespacesAndNewlines)
+                .isEmpty
             && !selectedInterests.isEmpty
             && !selectedLanguages.isEmpty
     }
@@ -600,7 +683,9 @@ struct UnifiedOnboardingView: View {
         return true
     }
 
-    private func orderedSelection(_ selection: Set<String>, options: [String]) -> [String] {
+    private func orderedSelection(_ selection: Set<String>, options: [String])
+        -> [String]
+    {
         let ordered = options.filter { selection.contains($0) }
         let extras = selection.filter { !options.contains($0) }.sorted()
         return ordered + extras
