@@ -90,6 +90,7 @@ struct PlaceDetailSheet: View {
     // Route enum lives here so the NavigationStack can push ActivityGroupsView
     enum PlaceRoute: Hashable {
         case meetups
+        case detail(UUID)
         case chat(UUID)
     }
     @State private var path: [PlaceRoute] = []
@@ -114,8 +115,22 @@ struct PlaceDetailSheet: View {
                     placeDetailContent
                         .navigationDestination(for: PlaceRoute.self) { route in
                             switch route {
+
                             case .meetups:
                                 ActivityGroupsView(place: place)
+
+                            case .detail(let groupID):
+                                if let group = MeetupStore.shared.group(with: groupID) {
+                                    GroupDetailView(
+                                        group: group,
+                                        hasJoined: groupsViewModel.hasJoinedGroup(group),
+                                        pendingConfirmation: .constant(nil),
+                                        openChat: {
+                                            path.append(.chat(groupID))
+                                        }
+                                    )
+                                }
+
                             case .chat(let groupID):
                                 GroupChatView(groupID: groupID, showsCloseButton: false)
                             }
@@ -269,20 +284,6 @@ struct PlaceDetailSheet: View {
                             .foregroundStyle(AppColors.primaryText)
 
                         Spacer()
-
-                        Button {
-                            path.append(.meetups)
-                        } label: {
-                            HStack(spacing: 4) {
-                                Text("View All")
-                                    .font(.subheadline)
-                                    .fontWeight(.semibold)
-                                Image(systemName: "chevron.right")
-                                    .font(.caption)
-                                    .fontWeight(.semibold)
-                            }
-                            .foregroundStyle(AppColors.accent)
-                        }
                     }
                     .padding(.horizontal, 20)
 
@@ -342,7 +343,7 @@ struct PlaceDetailSheet: View {
                                     hasJoined: groupsViewModel.hasJoinedGroup(group),
                                     onJoinTapped: { withAnimation { pendingConfirmation = .join(group) } },
                                     onLeaveTapped: { withAnimation { pendingConfirmation = .leave(group) } },
-                                    onCardTapped: { path.append(.meetups) }
+                                    onCardTapped: { path.append(.detail(group.id)) }
                                 )
                             }
                         }
