@@ -57,11 +57,18 @@ struct MainTabView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
 
-            MainTabBar(selectedTab: $selectedTab)
-                .padding(.horizontal, 48)
-                .padding(.bottom, 16)
+            if shouldShowTabBar {
+                MainTabBar(selectedTab: $selectedTab)
+                    .padding(.horizontal, 48)
+                    .padding(.bottom, 16)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
         }
         .ignoresSafeArea(.keyboard)
+    }
+
+    private var shouldShowTabBar: Bool {
+        !(selectedTab == .messages && !messagePath.isEmpty)
     }
 
     private func openMessageRoom(_ groupID: UUID) {
@@ -116,6 +123,7 @@ private struct MainTabItem: View {
                     .fill(Color.black.opacity(0.08))
             }
         }
+        .accessibilityLabel(tab.title)
     }
 }
 

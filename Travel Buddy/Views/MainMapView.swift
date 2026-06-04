@@ -116,6 +116,48 @@ struct RemotePlacePhoto: View {
     }
 }
 
+struct PlacePhotoCarousel: View {
+    let photoURLs: [URL]
+    let category: PlaceCategory
+
+    var body: some View {
+        TabView {
+            if photoURLs.isEmpty {
+                placeholder
+            } else {
+                ForEach(photoURLs, id: \.self) { url in
+                    AsyncImage(url: url) { phase in
+                        switch phase {
+                        case .success(let image):
+                            image
+                                .resizable()
+                                .scaledToFill()
+                        case .empty:
+                            ZStack {
+                                Color(UIColor.secondarySystemBackground)
+                                ProgressView()
+                            }
+                        default:
+                            placeholder
+                        }
+                    }
+                }
+            }
+        }
+        .tabViewStyle(.page(indexDisplayMode: photoURLs.count > 1 ? .automatic : .never))
+    }
+
+    private var placeholder: some View {
+        ZStack {
+            Color(UIColor.secondarySystemBackground)
+
+            Image(systemName: category.icon)
+                .font(.system(size: 44))
+                .foregroundStyle(AppColors.accent.opacity(0.6))
+        }
+    }
+}
+
 // MARK: - Detail sheet
 
 struct PlaceDetailSheet: View {
@@ -165,29 +207,24 @@ struct PlaceDetailSheet: View {
                     .padding(.horizontal, 20)
 
                     // for image
-                    AsyncImage(url: place.photoURL) { image in
-                        image
-                            .resizable()
-                            .scaledToFill()
-                    } placeholder: {
-                        ZStack {
-                            Color(UIColor.secondarySystemBackground)
-
-                            Image(systemName: "photo")
-                                .font(.largeTitle)
-                                .foregroundStyle(AppColors.accent)
-                        }
-                    }
+                    PlacePhotoCarousel(
+                        photoURLs: place.photoURLs,
+                        category: place.category
+                    )
                     .frame(height: 200)
                     .clipShape(RoundedRectangle(cornerRadius: 14))
                     .padding(.horizontal, 20)
 
+                    placeInfoChips
+
                     // description text
-                    Text(place.description)
-                        .font(.body)
-                        .foregroundStyle(AppColors.primaryText.opacity(0.85))
-                        .lineSpacing(4)
-                        .padding(.horizontal, 20)
+                    if !place.description.isEmpty {
+                        Text(place.description)
+                            .font(.body)
+                            .foregroundStyle(AppColors.primaryText.opacity(0.85))
+                            .lineSpacing(4)
+                            .padding(.horizontal, 20)
+                    }
 
                     // Available Meetups Section
                     VStack(alignment: .leading, spacing: 12) {
@@ -330,6 +367,64 @@ struct PlaceDetailSheet: View {
         if let joinedGroup = groupsViewModel.joinGroup(group) {
             onOpenChat(joinedGroup.id)
         }
+    }
+
+    private var placeInfoChips: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                if let primaryTypeName = place.primaryTypeName {
+                    infoChip(primaryTypeName, icon: place.category.icon)
+                }
+
+                if let rating = place.rating {
+                    let count = place.userRatingCount ?? 0
+                    infoChip(
+                        String(format: "%.1f (%d)", rating, count),
+                        icon: "star.fill"
+                    )
+                }
+
+                if let priceLevel = place.priceLevel {
+                    infoChip(priceLevel, icon: "banknote.fill")
+                }
+
+                if let isOpenNow = place.isOpenNow {
+                    infoChip(
+                        isOpenNow ? "Open now" : "Closed now",
+                        icon: isOpenNow ? "checkmark.circle.fill" : "clock.fill"
+                    )
+                }
+
+                infoChip(popularityText, icon: "person.2.fill")
+            }
+            .padding(.horizontal, 20)
+        }
+    }
+
+    private var popularityText: String {
+        let count = place.userRatingCount ?? 0
+        switch count {
+        case 1000...:
+            return "Very popular"
+        case 250...:
+            return "Popular"
+        case 50...:
+            return "Moderate traffic"
+        default:
+            return "Less crowded"
+        }
+    }
+
+    private func infoChip(_ text: String, icon: String) -> some View {
+        Label(text, systemImage: icon)
+            .font(.caption)
+            .fontWeight(.semibold)
+            .lineLimit(1)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 7)
+            .background(Color(UIColor.secondarySystemBackground))
+            .foregroundStyle(AppColors.primaryText)
+            .clipShape(Capsule())
     }
 }
 

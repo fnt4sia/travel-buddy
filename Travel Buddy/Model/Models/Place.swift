@@ -10,15 +10,21 @@ import CoreLocation
 import Foundation
 
 enum PlaceCategory: String, CaseIterable {
-    case activities = "activities"
-    case food       = "food"
-    case nature     = "nature"
+    case localFood = "Local Food"
+    case cafes = "Cafes"
+    case dessert = "Dessert"
+    case nature = "Nature"
+    case culture = "Culture"
+    case activities = "Activities"
 
     var icon: String {
         switch self {
+        case .localFood: return "fork.knife"
+        case .cafes: return "cup.and.saucer.fill"
+        case .dessert: return "birthday.cake.fill"
+        case .nature: return "leaf"
+        case .culture: return "building.columns.fill"
         case .activities: return "figure.hiking"
-        case .food:       return "fork.knife"
-        case .nature:     return "leaf"
         }
     }
 }
@@ -32,7 +38,16 @@ struct PlaceAnnotation: Identifiable {
     let category: PlaceCategory
     let rating: Double?
     let userRatingCount: Int?
-    let photoURL: URL?
+    let photoURLs: [URL]
+    let primaryTypeName: String?
+    let priceLevel: String?
+    let businessStatus: String?
+    let isOpenNow: Bool?
+    let types: [String]
+
+    var photoURL: URL? {
+        photoURLs.first
+    }
 
     init(
         id: String = UUID().uuidString,
@@ -43,7 +58,12 @@ struct PlaceAnnotation: Identifiable {
         category: PlaceCategory,
         rating: Double? = nil,
         userRatingCount: Int? = nil,
-        photoURL: URL? = nil
+        photoURLs: [URL] = [],
+        primaryTypeName: String? = nil,
+        priceLevel: String? = nil,
+        businessStatus: String? = nil,
+        isOpenNow: Bool? = nil,
+        types: [String] = []
     ) {
         self.id = id
         self.name = name
@@ -53,6 +73,11 @@ struct PlaceAnnotation: Identifiable {
         self.category = category
         self.rating = rating
         self.userRatingCount = userRatingCount
-        self.photoURL = photoURL
+        self.photoURLs = photoURLs
+        self.primaryTypeName = primaryTypeName
+        self.priceLevel = priceLevel
+        self.businessStatus = businessStatus
+        self.isOpenNow = isOpenNow
+        self.types = types
     }
 }

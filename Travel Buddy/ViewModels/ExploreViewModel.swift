@@ -26,8 +26,8 @@ final class ExploreViewModel: ObservableObject {
     private let placesService: PlacesService
     private let locationService: LocationService
 
-    // Ubud fallback (matches the app's original default) when nothing else is known.
-    private static let fallbackCenter = CLLocationCoordinate2D(latitude: -8.5069, longitude: 115.2624)
+    // Badung fallback for development fixtures when nothing else is known.
+    private static let fallbackCenter = CLLocationCoordinate2D(latitude: -8.6833, longitude: 115.1667)
 
     convenience init() {
         self.init(
@@ -104,9 +104,11 @@ final class ExploreViewModel: ObservableObject {
             // No filter: gather a few from each category concurrently. A failure in
             // one category shouldn't wipe out the others.
             async let nature = safeRecommend(.nature)
-            async let food = safeRecommend(.food)
+            async let localFood = safeRecommend(.localFood)
+            async let cafes = safeRecommend(.cafes)
+            async let culture = safeRecommend(.culture)
             async let activities = safeRecommend(.activities)
-            let combined = await nature + food + activities
+            let combined = await nature + localFood + cafes + culture + activities
             places = combined
             if combined.isEmpty {
                 errorMessage = "Couldn't load places near you."
