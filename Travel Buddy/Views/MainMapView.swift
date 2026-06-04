@@ -191,14 +191,15 @@ struct PlaceDetailSheet: View {
                 selectedDate: groupsViewModel.selectedDate,
                 defaultName: "\(place.name) Meetup",
                 defaultAddress: place.address,
-                onCreate: { name, address, date, meetingTime, maxCapacity, price in
+                defaultDescription: "Explore \(place.name), meet new people, and keep the plan flexible for the group.",
+                onCreate: { name, description, address, date, meetingTime, maxCapacity in
                     if let created = groupsViewModel.createGroup(
                         name: name,
+                        description: description,
                         address: address,
                         date: date,
                         meetingTime: meetingTime,
-                        maxCapacity: maxCapacity,
-                        price: price
+                        maxCapacity: maxCapacity
                     ) {
                         path = [.chat(created.id)]
                     }

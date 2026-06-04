@@ -34,7 +34,7 @@ struct ProfileAvatar: View {
                 .overlay {
                     Image(systemName: "person.crop.square.fill")
                         .font(.system(size: size * 1))
-                        .foregroundStyle(.black.opacity(0.34))
+                        .foregroundStyle(AppColors.brandPrimary.opacity(0.45))
                 }
         }
     }

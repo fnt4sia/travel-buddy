@@ -20,14 +20,14 @@ struct LocationConfirmView: View {
                 .font(.largeTitle).bold()
             Text(city)
                 .font(.largeTitle).bold()
-                .foregroundColor(.teal)
+                .foregroundColor(AppColors.accent)
 
             Button("Start Exploring") {
                 // navigate to main app
             }
             .frame(maxWidth: .infinity)
             .padding()
-            .background(Color.teal)
+            .background(AppColors.accent)
             .foregroundColor(.white)
             .clipShape(Capsule())
             .padding(.horizontal)

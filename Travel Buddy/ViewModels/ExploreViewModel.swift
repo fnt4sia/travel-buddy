@@ -3,8 +3,8 @@
 //  Travel Buddy
 //
 //  Drives MainMapView: resolves the user's current location, centers the map on
-//  it, and loads place recommendations from Google Places for the selected
-//  category (or all categories when no filter is active).
+//  it, and loads place recommendations for the selected category (or all
+//  categories when no filter is active).
 //
 
 import Combine
@@ -26,8 +26,8 @@ final class ExploreViewModel: ObservableObject {
     private let placesService: PlacesService
     private let locationService: LocationService
 
-    // Ubud fallback (matches the app's original default) when nothing else is known.
-    private static let fallbackCenter = CLLocationCoordinate2D(latitude: -8.5069, longitude: 115.2624)
+    // Badung fallback for development when nothing else is known.
+    private static let fallbackCenter = CLLocationCoordinate2D(latitude: -8.6558, longitude: 115.1354)
 
     convenience init() {
         self.init(
@@ -46,7 +46,7 @@ final class ExploreViewModel: ObservableObject {
         let start = Self.savedCoordinate() ?? Self.fallbackCenter
         self.center = start
         self.cameraPosition = .region(Self.region(for: start))
-        self.locationName = UserDefaults.standard.string(forKey: "userCity") ?? "Ubud"
+        self.locationName = UserDefaults.standard.string(forKey: "userCity") ?? "Badung"
     }
 
     // MARK: - Lifecycle

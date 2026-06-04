@@ -54,7 +54,7 @@ struct NameInputView: View {
                             .fontWeight(.semibold)
                             .frame(maxWidth: .infinity)
                             .padding()
-                            .background(firstName.isEmpty ? Color.teal.opacity(0.4) : Color.teal)
+                            .background(firstName.isEmpty ? AppColors.accentDisabled : AppColors.accent)
                             .foregroundColor(.white)
                             .clipShape(Capsule())
                     }
