@@ -28,14 +28,7 @@ enum MainTab: CaseIterable {
     }
 
     var tint: Color {
-        switch self {
-        case .messages:
-            return Color(red: 0.04, green: 0.38, blue: 0.48)
-        case .explore:
-            return Color(red: 0.35, green: 0.55, blue: 0.37)
-        case .profile:
-            return .black
-        }
+        AppColors.brandPrimary
     }
 }
 
@@ -91,8 +84,9 @@ private struct MainTabBar: View {
         .padding(3)
         .frame(maxWidth: .infinity)
         .frame(height: 54)
-        .background(.white.opacity(0.92), in: Capsule())
-        .shadow(color: .black.opacity(0.10), radius: 16, x: 0, y: 8)
+        .background(AppColors.surface.opacity(0.94), in: Capsule())
+        .overlay(Capsule().stroke(AppColors.cardBorder, lineWidth: 1))
+        .shadow(color: AppColors.brandPrimary.opacity(0.12), radius: 16, x: 0, y: 8)
     }
 }
 
@@ -108,12 +102,12 @@ private struct MainTabItem: View {
             Text(tab.title)
                 .font(.system(size: 10, weight: .bold))
         }
-        .foregroundColor(isSelected ? tab.tint : .black)
+        .foregroundColor(isSelected ? tab.tint : AppColors.secondaryText)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background {
             if isSelected {
                 Capsule()
-                    .fill(Color.black.opacity(0.08))
+                    .fill(AppColors.accentSurface)
             }
         }
     }

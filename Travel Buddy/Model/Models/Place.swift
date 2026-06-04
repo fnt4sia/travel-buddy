@@ -2,8 +2,7 @@
 //  Place.swift
 //  Travel Buddy
 //
-//  Domain model for a place shown on the map. Populated from the Google Places API
-//  (see PlacesService) instead of static sample data.
+//  Domain model for a place shown on the map.
 //
 
 import CoreLocation

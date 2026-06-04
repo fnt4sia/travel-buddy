@@ -14,6 +14,7 @@ final class MeetupStore: ObservableObject {
 
     @Published private(set) var groups: [ActivityGroup]
     @Published private(set) var joinedGroupIDs: Set<UUID> = []
+    @Published private(set) var createdGroupIDs: Set<UUID> = []
     @Published private(set) var messagesByGroupID: [UUID: [ChatMessage]]
 
     private init() {
@@ -30,6 +31,10 @@ final class MeetupStore: ObservableObject {
         groups
             .filter { joinedGroupIDs.contains($0.id) }
             .sorted { $0.date < $1.date }
+    }
+
+    var createdGroupsCount: Int {
+        createdGroupIDs.count
     }
 
     func groups(on date: Date) -> [ActivityGroup] {
@@ -92,22 +97,22 @@ final class MeetupStore: ObservableObject {
     @discardableResult
     func createGroup(
         name: String,
+        description: String,
         address: String,
         date: Date,
         meetingTime: String,
-        maxCapacity: Int,
-        price: String
+        maxCapacity: Int
     ) -> ActivityGroup? {
         let group = ActivityGroup(
             name: name,
+            description: description,
             address: address,
             date: date,
             maxCapacity: maxCapacity,
             members: [
                 GroupMember(name: Self.currentUserName, color: "teal")
             ],
-            meetingTime: meetingTime,
-            price: price
+            meetingTime: meetingTime
         )
 
         guard conflictingJoinedGroup(for: group) == nil else {
@@ -116,11 +121,12 @@ final class MeetupStore: ObservableObject {
 
         groups.insert(group, at: 0)
         joinedGroupIDs.insert(group.id)
+        createdGroupIDs.insert(group.id)
         messagesByGroupID[group.id] = [
             ChatMessage(
                 groupID: group.id,
                 senderName: Self.currentUserName,
-                body: "Hi everyone, I created this meetup. See you there!"
+                body: "Hi everyone, I created this meetup: \(group.description)"
             )
         ]
 
@@ -156,6 +162,7 @@ final class MeetupStore: ObservableObject {
         [
             ActivityGroup(
                 name: "Morning Adventure",
+                description: "Start with a short walk, take photos around the forest area, then grab a casual brunch together.",
                 address: "Jl. Monkey Forest, Ubud, Kecamatan Ubud",
                 date: Calendar.current.date(byAdding: .day, value: 0, to: Date()) ?? Date(),
                 maxCapacity: 4,
@@ -163,11 +170,11 @@ final class MeetupStore: ObservableObject {
                     GroupMember(name: "Agustinus Juan", color: "blue"),
                     GroupMember(name: "Rani", color: "green"),
                 ],
-                meetingTime: "09:00 - 15:00 GMT+8",
-                price: "Rp25.000"
+                meetingTime: "09:00 - 15:00 GMT+8"
             ),
             ActivityGroup(
                 name: "Sunset Explorer",
+                description: "Meet before golden hour, walk through the nearby area, and find a good sunset spot together.",
                 address: "Jl. Raya Ubud No.35, Ubud, Kecamatan Ubud",
                 date: Calendar.current.date(byAdding: .day, value: 0, to: Date()) ?? Date(),
                 maxCapacity: 7,
@@ -175,24 +182,25 @@ final class MeetupStore: ObservableObject {
                     GroupMember(name: "Jody", color: "purple"),
                     GroupMember(name: "Balqis", color: "orange"),
                 ],
-                meetingTime: "16:00 - 19:00 GMT+8",
-                price: "Rp20.000"
+                meetingTime: "16:00 - 19:00 GMT+8"
             ),
             ActivityGroup(
                 name: "Full Group Experience",
+                description: "A full small-group day plan with sightseeing, local snacks, and a shared photo stop.",
                 address: "Kelusa, Payangan, Kabupaten Gianyar",
                 date: Calendar.current.date(byAdding: .day, value: 0, to: Date()) ?? Date(),
-                maxCapacity: 3,
+                maxCapacity: 4,
                 members: [
                     GroupMember(name: "Dodo", color: "red"),
                     GroupMember(name: "Eka", color: "yellow"),
                     GroupMember(name: "Fira", color: "cyan"),
+                    GroupMember(name: "Mira", color: "purple"),
                 ],
-                meetingTime: "08:00 - 14:00 GMT+8",
-                price: "Rp30.000"
+                meetingTime: "08:00 - 14:00 GMT+8"
             ),
             ActivityGroup(
                 name: "Afternoon Exploration",
+                description: "Easy afternoon route for trying nearby food, checking hidden corners, and chatting along the way.",
                 address: "Jl. Kajeng, Ubud, Kecamatan Ubud",
                 date: Calendar.current.date(byAdding: .day, value: 1, to: Date()) ?? Date(),
                 maxCapacity: 4,
@@ -200,11 +208,11 @@ final class MeetupStore: ObservableObject {
                     GroupMember(name: "John", color: "purple"),
                     GroupMember(name: "Maria", color: "blue"),
                 ],
-                meetingTime: "14:00 - 17:00 GMT+8",
-                price: "Rp15.000"
+                meetingTime: "14:00 - 17:00 GMT+8"
             ),
             ActivityGroup(
                 name: "Nature Lovers Walk",
+                description: "Morning walk for people who want something calm: fresh air, photos, and a coffee stop after.",
                 address: "Jl. Raya Andong, Ubud, Kecamatan Ubud",
                 date: Calendar.current.date(byAdding: .day, value: 1, to: Date()) ?? Date(),
                 maxCapacity: 5,
@@ -213,8 +221,7 @@ final class MeetupStore: ObservableObject {
                     GroupMember(name: "Siti", color: "orange"),
                     GroupMember(name: "Ahmad", color: "red"),
                 ],
-                meetingTime: "06:00 - 10:00 GMT+8",
-                price: "Rp18.000"
+                meetingTime: "06:00 - 10:00 GMT+8"
             ),
         ]
     }
@@ -241,7 +248,7 @@ final class MeetupStore: ObservableObject {
             ChatMessage(
                 groupID: group.id,
                 senderName: group.members.dropFirst().first?.name ?? firstMember.name,
-                body: "Let's meet near the entrance before we start.",
+                body: "Plan sounds good. Let's meet near the entrance before we start.",
                 sentAt: Calendar.current.date(byAdding: .minute, value: -12, to: Date()) ?? Date()
             ),
         ]
@@ -312,20 +319,20 @@ final class GroupsViewModel: ObservableObject {
     @discardableResult
     func createGroup(
         name: String,
+        description: String,
         address: String,
         date: Date,
         meetingTime: String,
-        maxCapacity: Int,
-        price: String
+        maxCapacity: Int
     ) -> ActivityGroup? {
         let candidate = ActivityGroup(
             name: name,
+            description: description,
             address: address,
             date: date,
             maxCapacity: maxCapacity,
             members: [],
-            meetingTime: meetingTime,
-            price: price
+            meetingTime: meetingTime
         )
 
         if let conflict = store.conflictingJoinedGroup(for: candidate) {
@@ -337,11 +344,11 @@ final class GroupsViewModel: ObservableObject {
 
         guard let createdGroup = store.createGroup(
             name: name,
+            description: description,
             address: address,
             date: date,
             meetingTime: meetingTime,
-            maxCapacity: maxCapacity,
-            price: price
+            maxCapacity: maxCapacity
         ) else {
             return nil
         }

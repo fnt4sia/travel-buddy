@@ -17,10 +17,11 @@ struct InterestChip: View {
             Text(interest)
                 .font(.system(size: ProfileMetrics.Font.chip, weight: .medium))
         }
-        .foregroundStyle(.white)
+        .foregroundStyle(AppColors.brandPrimary)
         .padding(.horizontal, 14)
         .padding(.vertical, 8)
-        .background(AppColors.brandTeal, in: Capsule())
+        .background(AppColors.accentSurface, in: Capsule())
+        .overlay(Capsule().stroke(AppColors.cardBorder, lineWidth: 1))
     }
 }
 

@@ -87,15 +87,16 @@ struct ActivityGroupsView: View {
             CreateMeetupSheet(
                 selectedDate: viewModel.selectedDate,
                 defaultName: place.map { "\($0.name) Meetup" } ?? "New Meetup",
-                defaultAddress: place?.address ?? "Choose a nearby meeting point",
-                onCreate: { name, address, date, meetingTime, maxCapacity, price in
+                defaultAddress: place?.address ?? "Selected place",
+                defaultDescription: place.map { "Explore \($0.name), meet new people, and keep the plan flexible for the group." } ?? "",
+                onCreate: { name, description, address, date, meetingTime, maxCapacity in
                     if let created = viewModel.createGroup(
                         name: name,
+                        description: description,
                         address: address,
                         date: date,
                         meetingTime: meetingTime,
-                        maxCapacity: maxCapacity,
-                        price: price
+                        maxCapacity: maxCapacity
                     ) {
                         path = [.chat(created.id)]
                     }
@@ -117,17 +118,16 @@ struct ActivityGroupsView: View {
     private func routeDestination(_ route: GroupRoute) -> some View {
         switch route {
         case .profile(let memberName):
-            if UserProfile.profile(for: memberName) != nil {
-                let vm = ProfileViewModel()
-                ProfileView(viewModel: vm)
-            }
+            let vm = ProfileViewModel(profile: UserProfile.profile(for: memberName))
+            ProfileView(viewModel: vm)
         case .detail(let groupID):
             if let group = MeetupStore.shared.group(with: groupID) {
                 GroupDetailView(
                     group: group,
                     hasJoined: viewModel.hasJoinedGroup(group),
                     pendingConfirmation: $pendingConfirmation,
-                    openChat: { path.append(.chat(group.id)) }
+                    openChat: { path.append(.chat(group.id)) },
+                    onMemberTapped: { path.append(.profile($0)) }
                 )
             } else {
                 ContentUnavailableView(
@@ -272,103 +272,111 @@ struct GroupRowView: View {
     let onCardTapped: () -> Void
     var onMemberTapped: ((String) -> Void)? = nil
 
-    private enum Slot: Identifiable {
-        case member(GroupMember)
-        case available(Int)
-
-        var id: String {
-            switch self {
-            case .member(let m): return m.id.uuidString
-            case .available(let i): return "available-\(i)"
-            }
-        }
-    }
-
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(alignment: .top, spacing: 12) {
+                VStack(alignment: .leading, spacing: 7) {
+                    Text(group.name)
+                        .font(.system(size: 18, weight: .bold))
+                        .foregroundStyle(AppColors.primaryText)
+                        .lineLimit(2)
 
-            VStack(alignment: .leading, spacing: 4) {
-                Text(group.name)
-                    .font(.headline)
-                    .fontWeight(.bold)
-                    .foregroundStyle(AppColors.primaryText)
-
-                HStack(spacing: 6) {
-                    Image(systemName: "clock")
-                    Text(group.meetingTime)
+                    Text(group.description)
+                        .font(.system(size: 14))
+                        .foregroundStyle(AppColors.secondaryText)
+                        .lineLimit(3)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
-                .font(.caption)
-                .foregroundStyle(AppColors.secondaryText)
+
+                Spacer(minLength: 8)
+
+                statusBadge
             }
 
-            Divider()
+            infoRow
 
-            HStack(alignment: .top, spacing: 6) {
-                // Left column (fills after right)
-                if !leftColSlots.isEmpty {
-                    VStack(alignment: .leading, spacing: 8) {
-                        ForEach(leftColSlots) { slot in attendeeRow(for: slot) }
-                    }
-                    .frame(maxWidth: .infinity)
-                }
+            capacityRow
 
-                // Right column (fills first)
-                VStack(alignment: .leading, spacing: 8) {
-                    ForEach(rightColSlots) { slot in attendeeRow(for: slot) }
-                    // Overflow pill
-                    if overflowCount > 0 {
-                        Text("+\(overflowCount) more")
-                            .font(.caption)
-                            .fontWeight(.medium)
-                            .foregroundStyle(AppColors.secondaryText)
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 8)
-                            .frame(maxWidth: .infinity, minHeight: 36, alignment: .leading)
-                            .background(Color(UIColor.systemGray5))
-                            .overlay(Capsule().stroke(Color(UIColor.systemGray3), lineWidth: 1.5))
-                            .clipShape(Capsule())
-                    }
-                }
-                .frame(maxWidth: .infinity)
-
-                // Action button column
-                VStack(spacing: 8) {
-                    Spacer(minLength: 0)
-
-                    Button {
-                        if hasJoined {
-                            onLeaveTapped()
-                        } else if !group.isFull {
-                            onJoinTapped()
-                        }
-                    } label: {
-                        Text(actionTitle)
-                            .font(.system(size: 18, weight: .medium))
-                            .frame(width: 80, height: 36)
-                            .background(actionBackground)
-                            .foregroundStyle(actionForeground)
-                            .clipShape(Capsule())
-                    }
-                    .disabled(group.isFull && !hasJoined)
-                    .buttonStyle(.plain)
-
-                    Text("Max. \(group.maxCapacity) People")
-                        .font(.caption)
-                        .foregroundStyle(AppColors.secondaryText)
-                        .multilineTextAlignment(.center)
-
-                    Spacer(minLength: 0)
-                }
-                .frame(width: 100)
+            HStack {
+                Spacer()
+                actionButton
             }
         }
-        .padding(14)
-        .background(Color(UIColor.systemBackground))
-        .contentShape(Rectangle())
+        .padding(16)
+        .background(AppColors.surface, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .stroke(AppColors.cardBorder, lineWidth: 1)
+        )
+        .shadow(color: .black.opacity(0.04), radius: 10, x: 0, y: 6)
+        .contentShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
         .onTapGesture { onCardTapped() }
     }
 
     // MARK: Helpers
+
+    private var statusBadge: some View {
+        Text(hasJoined ? "Joined" : (group.isFull ? "Full" : "\(group.availableSpots) spots"))
+            .font(.system(size: 12, weight: .bold))
+            .foregroundStyle(hasJoined ? .white : AppColors.brandPrimary)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .background(
+                hasJoined ? AppColors.brandPrimary : AppColors.accentSurface,
+                in: Capsule()
+            )
+            .overlay(
+                Capsule()
+                    .stroke(hasJoined ? .clear : AppColors.cardBorder, lineWidth: 1)
+            )
+    }
+
+    private var infoRow: some View {
+        HStack(spacing: 8) {
+            MeetupInfoPill(icon: "clock", text: group.meetingTime)
+            MeetupInfoPill(
+                icon: "person.2.fill",
+                text: "\(group.members.count)/\(group.maxCapacity)"
+            )
+        }
+    }
+
+    private var capacityRow: some View {
+        HStack(spacing: 10) {
+            HStack(spacing: 6) {
+                ForEach(0..<group.maxCapacity, id: \.self) { index in
+                    capacityDot(at: index)
+                }
+            }
+
+            Spacer(minLength: 8)
+
+            Text(group.isFull ? "No spots left" : "\(group.availableSpots) open")
+                .font(.caption)
+                .fontWeight(.semibold)
+                .foregroundStyle(AppColors.secondaryText)
+        }
+    }
+
+    private var actionButton: some View {
+        Button {
+            if hasJoined {
+                onLeaveTapped()
+            } else if !group.isFull {
+                onJoinTapped()
+            }
+        } label: {
+            Text(actionTitle)
+                .font(.system(size: 14, weight: .bold))
+                .frame(minWidth: 76)
+                .padding(.vertical, 10)
+                .padding(.horizontal, 12)
+                .background(actionBackground, in: Capsule())
+                .foregroundStyle(actionForeground)
+        }
+        .disabled(group.isFull && !hasJoined)
+        .buttonStyle(.plain)
+    }
 
     private var actionTitle: String {
         if hasJoined { return "Leave" }
@@ -386,82 +394,36 @@ struct GroupRowView: View {
         hasJoined || (!group.isFull) ? .white : .gray
     }
 
-    // Max 4 visible slots; anything beyond shows a "+N more" overflow pill
-    private static let maxVisible = 4
-
-    private var allSlots: [Slot] {
-        (0..<group.maxCapacity).map { i in
-            i < group.members.count ? .member(group.members[i]) : .available(i)
-        }
-    }
-
-    // Visible slots capped at maxVisible; fill RIGHT column first then LEFT
-    // Right col = indices 0,2,4… Left col = 1,3,5… so right fills first
-    private var visibleSlots: [Slot] { Array(allSlots.prefix(Self.maxVisible)) }
-    private var overflowCount: Int { max(0, allSlots.count - Self.maxVisible) }
-
-    // Interleave: even indices → right col, odd → left col
-    private var rightColSlots: [Slot] {
-        visibleSlots.enumerated().filter { $0.offset % 2 == 0 }.map(\.element)
-    }
-    private var leftColSlots: [Slot] {
-        visibleSlots.enumerated().filter { $0.offset % 2 == 1 }.map(\.element)
-    }
-
-    private func firstName(for fullName: String) -> String {
-        fullName.split(separator: " ").first.map(String.init) ?? fullName
-    }
-
     private func firstInitial(for fullName: String) -> String {
         String(fullName.split(separator: " ").first?.prefix(1) ?? "")
     }
 
     @ViewBuilder
-    private func attendeeRow(for slot: Slot) -> some View {
-        switch slot {
-        case .member(let member):
-            HStack(spacing: 10) {
+    private func capacityDot(at index: Int) -> some View {
+        if index < group.members.count {
+            let member = group.members[index]
+            Button {
+                onMemberTapped?(member.name)
+            } label: {
                 Circle()
                     .fill(memberColor(for: member.color))
-                    .frame(width: 24, height: 24)
+                    .frame(width: 27, height: 27)
                     .overlay(
                         Text(firstInitial(for: member.name))
                             .font(.caption2)
                             .fontWeight(.bold)
                             .foregroundStyle(.white)
                     )
-
-                Text(firstName(for: member.name))
-                    .font(.callout)
-                    .fontWeight(.medium)
-                    .foregroundStyle(AppColors.primaryText)
-                    .lineLimit(1)
-                    .truncationMode(.tail)
-                    .frame(maxWidth: .infinity, alignment: .leading)
             }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
-            .frame(maxWidth: .infinity, minHeight: 36, alignment: .leading)
-            .background(Color(UIColor.systemGray5))
-            .overlay(Capsule().stroke(Color(UIColor.systemGray3), lineWidth: 1.5))
-            .clipShape(Capsule())
-            .onTapGesture {
-                onMemberTapped?(member.name)
-            }
-
-        case .available:
-            HStack {
-                Text("Available")
-                    .font(.callout)
-                    .fontWeight(.medium)
-                    .foregroundStyle(AppColors.secondaryText)
-            }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
-            .frame(maxWidth: .infinity, minHeight: 36, alignment: .leading)
-            .background(Color(UIColor.systemGray5))
-            .overlay(Capsule().stroke(Color(UIColor.systemGray3), lineWidth: 1.5))
-            .clipShape(Capsule())
+            .buttonStyle(.plain)
+        } else {
+            Circle()
+                .fill(AppColors.accentSurface)
+                .frame(width: 27, height: 27)
+                .overlay(
+                    Circle()
+                        .stroke(AppColors.cardBorder, lineWidth: 1)
+                )
         }
     }
 
@@ -477,6 +439,22 @@ struct GroupRowView: View {
         case "teal": return AppColors.accent
         default: return .gray
         }
+    }
+}
+
+private struct MeetupInfoPill: View {
+    let icon: String
+    let text: String
+
+    var body: some View {
+        Label(text, systemImage: icon)
+            .font(.system(size: 12, weight: .semibold))
+            .foregroundStyle(AppColors.brandPrimary)
+            .lineLimit(1)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 7)
+            .background(AppColors.accentSurface, in: Capsule())
+            .overlay(Capsule().stroke(AppColors.cardBorder, lineWidth: 1))
     }
 }
 
@@ -610,26 +588,27 @@ struct CreateMeetupSheet: View {
     @Environment(\.dismiss) private var dismiss
 
     @State private var name: String
+    @State private var description: String
     @State private var address: String
     @State private var date: Date
     @State private var meetingTime: String
     @State private var maxCapacity: Int
-    @State private var price: String
 
-    let onCreate: (String, String, Date, String, Int, String) -> Void
+    let onCreate: (String, String, String, Date, String, Int) -> Void
 
     init(
         selectedDate: Date,
         defaultName: String = "New Meetup",
         defaultAddress: String,
-        onCreate: @escaping (String, String, Date, String, Int, String) -> Void
+        defaultDescription: String = "",
+        onCreate: @escaping (String, String, String, Date, String, Int) -> Void
     ) {
         _name = State(initialValue: defaultName)
+        _description = State(initialValue: defaultDescription)
         _address = State(initialValue: defaultAddress)
         _date = State(initialValue: selectedDate)
         _meetingTime = State(initialValue: "09:00 - 11:00 GMT+8")
-        _maxCapacity = State(initialValue: 5)
-        _price = State(initialValue: "Rp0")
+        _maxCapacity = State(initialValue: ActivityGroup.minimumCapacity)
         self.onCreate = onCreate
     }
 
@@ -637,8 +616,8 @@ struct CreateMeetupSheet: View {
         NavigationStack {
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 18) {
-                    field(title: "Name", placeholder: "Meetup name", text: $name)
-                    field(title: "Meeting Point", placeholder: "Address", text: $address)
+                    field(title: "Title", placeholder: "Sunset walk and dinner", text: $name)
+                    descriptionField
 
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Date")
@@ -654,17 +633,23 @@ struct CreateMeetupSheet: View {
                     field(title: "Time", placeholder: "09:00 - 11:00 GMT+8", text: $meetingTime)
 
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("Capacity")
+                        Text("Group size")
                             .font(.caption)
                             .fontWeight(.semibold)
                             .foregroundStyle(AppColors.secondaryText)
 
-                        Stepper("\(maxCapacity) people", value: $maxCapacity, in: 2...8)
+                        Stepper(
+                            "\(maxCapacity) people",
+                            value: $maxCapacity,
+                            in: ActivityGroup.minimumCapacity...ActivityGroup.maximumCapacity
+                        )
                             .font(.body)
                             .foregroundStyle(AppColors.primaryText)
-                    }
 
-                    field(title: "Price", placeholder: "Rp0", text: $price)
+                        Text("Meetups need at least \(ActivityGroup.minimumCapacity) people and can have up to \(ActivityGroup.maximumCapacity).")
+                            .font(.caption)
+                            .foregroundStyle(AppColors.secondaryText)
+                    }
                 }
                 .padding(20)
             }
@@ -678,8 +663,8 @@ struct CreateMeetupSheet: View {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Create") {
                         onCreate(
-                            trimmed(name), trimmed(address), date,
-                            trimmed(meetingTime), maxCapacity, trimmed(price)
+                            trimmed(name), trimmed(description), trimmed(address),
+                            date, trimmed(meetingTime), maxCapacity
                         )
                         dismiss()
                     }
@@ -690,8 +675,8 @@ struct CreateMeetupSheet: View {
     }
 
     private var canCreate: Bool {
-        !trimmed(name).isEmpty && !trimmed(address).isEmpty
-            && !trimmed(meetingTime).isEmpty && !trimmed(price).isEmpty
+        !trimmed(name).isEmpty && !trimmed(description).isEmpty
+            && !trimmed(meetingTime).isEmpty
     }
 
     private func trimmed(_ value: String) -> String {
@@ -711,6 +696,32 @@ struct CreateMeetupSheet: View {
                 .padding(.vertical, 12)
                 .background(Color(UIColor.secondarySystemBackground))
                 .clipShape(RoundedRectangle(cornerRadius: 8))
+        }
+    }
+
+    private var descriptionField: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Activity to do")
+                .font(.caption)
+                .fontWeight(.semibold)
+                .foregroundStyle(AppColors.secondaryText)
+
+            TextEditor(text: $description)
+                .frame(minHeight: 92)
+                .padding(8)
+                .scrollContentBackground(.hidden)
+                .background(Color(UIColor.secondarySystemBackground))
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+                .overlay(alignment: .topLeading) {
+                    if trimmed(description).isEmpty {
+                        Text("What will the group do together?")
+                            .font(.body)
+                            .foregroundStyle(AppColors.secondaryText.opacity(0.75))
+                            .padding(.horizontal, 13)
+                            .padding(.vertical, 16)
+                            .allowsHitTesting(false)
+                    }
+                }
         }
     }
 }
@@ -750,58 +761,98 @@ struct GroupDetailView: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
-                Text(group.name)
-                    .font(.largeTitle)
-                    .fontWeight(.bold)
+            VStack(alignment: .leading, spacing: 18) {
+                VStack(alignment: .leading, spacing: 12) {
+                    Text(group.name)
+                        .font(.system(size: 30, weight: .bold))
+                        .foregroundStyle(AppColors.primaryText)
+                        .fixedSize(horizontal: false, vertical: true)
 
-                Label(group.meetingTime, systemImage: "clock")
-                Label(group.address, systemImage: "mappin")
-                Label("\(group.members.count)/\(group.maxCapacity) Participants", systemImage: "person.3")
+                    Text(group.description)
+                        .font(.body)
+                        .foregroundStyle(AppColors.secondaryText)
+                        .lineSpacing(3)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .padding(18)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(AppColors.surface, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 22, style: .continuous)
+                        .stroke(AppColors.cardBorder, lineWidth: 1)
+                )
 
-                Divider()
+                VStack(alignment: .leading, spacing: 12) {
+                    Label(group.meetingTime, systemImage: "clock")
+                    Label("\(group.members.count)/\(group.maxCapacity) participants", systemImage: "person.3.fill")
+                }
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(AppColors.brandPrimary)
+                .padding(16)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(AppColors.accentSurface, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
 
-                Text("Participants")
-                    .font(.headline)
-                    .fontWeight(.bold)
+                VStack(alignment: .leading, spacing: 14) {
+                    Text("People")
+                        .font(.headline)
+                        .fontWeight(.bold)
+                        .foregroundStyle(AppColors.primaryText)
 
-                // Two-column capsule grid — right column fills first
-                HStack(alignment: .top, spacing: 6) {
-                    if !leftColSlots.isEmpty {
+                    HStack(alignment: .top, spacing: 8) {
+                        if !leftColSlots.isEmpty {
+                            VStack(alignment: .leading, spacing: 8) {
+                                ForEach(leftColSlots) { slot in participantRow(for: slot) }
+                            }
+                            .frame(maxWidth: .infinity)
+                        }
+
                         VStack(alignment: .leading, spacing: 8) {
-                            ForEach(leftColSlots) { slot in participantRow(for: slot) }
+                            ForEach(rightColSlots) { slot in participantRow(for: slot) }
                         }
                         .frame(maxWidth: .infinity)
                     }
-
-                    VStack(alignment: .leading, spacing: 8) {
-                        ForEach(rightColSlots) { slot in participantRow(for: slot) }
-                    }
-                    .frame(maxWidth: .infinity)
                 }
+                .padding(18)
+                .background(AppColors.surface, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 22, style: .continuous)
+                        .stroke(AppColors.cardBorder, lineWidth: 1)
+                )
 
-                Divider()
+                VStack(spacing: 10) {
+                    if hasJoined {
+                        Button("Open Group Chat") { openChat() }
+                            .font(.body)
+                            .fontWeight(.bold)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 14)
+                            .background(AppColors.accent)
+                            .foregroundStyle(.white)
+                            .clipShape(Capsule())
 
-                if hasJoined {
-                    Button("Leave Meetup") {
-                        withAnimation { pendingConfirmation = .leave(group) }
-                    }
-                    .buttonStyle(.borderedProminent)
-
-                    Button("Open Group Chat") { openChat() }
-
-                } else {
-                    Button("Join Meetup") {
-                        guard !group.isFull else { return }
-                        withAnimation { pendingConfirmation = .join(group) }
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .disabled(group.isFull)
-
-                    if group.isFull {
-                        Text("This meetup is full")
-                            .font(.caption)
-                            .foregroundStyle(AppColors.secondaryText)
+                        Button("Leave Meetup") {
+                            withAnimation { pendingConfirmation = .leave(group) }
+                        }
+                        .font(.body)
+                        .fontWeight(.bold)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                        .background(Color.red.opacity(0.12))
+                        .foregroundStyle(.red)
+                        .clipShape(Capsule())
+                    } else {
+                        Button(group.isFull ? "Meetup is Full" : "Join Meetup") {
+                            guard !group.isFull else { return }
+                            withAnimation { pendingConfirmation = .join(group) }
+                        }
+                        .font(.body)
+                        .fontWeight(.bold)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                        .background(group.isFull ? Color.gray.opacity(0.25) : AppColors.accent)
+                        .foregroundStyle(group.isFull ? AppColors.secondaryText : .white)
+                        .clipShape(Capsule())
+                        .disabled(group.isFull)
                     }
                 }
             }

@@ -8,23 +8,77 @@
 import SwiftUI
 
 struct AppColors {
+    static var brandPrimary: Color {
+        Color(red: 0.016, green: 0.337, blue: 0.431) // #04566E
+    }
+
+    static var brandDeep: Color {
+        Color(red: 0.008, green: 0.192, blue: 0.255)
+    }
+
+    static var brandSecondary: Color {
+        Color(red: 0.039, green: 0.506, blue: 0.557)
+    }
+
+    static var warmAccent: Color {
+        Color(red: 0.945, green: 0.616, blue: 0.224)
+    }
+
     // MARK: - Primary Colors
     static var primaryText: Color {
         Color(UIColor { traitCollection in
-            traitCollection.userInterfaceStyle == .dark ? .white : .black
+            traitCollection.userInterfaceStyle == .dark
+                ? UIColor(white: 0.96, alpha: 1)
+                : UIColor(red: 0.06, green: 0.08, blue: 0.09, alpha: 1)
         })
     }
 
     static var secondaryText: Color {
         Color(UIColor { traitCollection in
-            traitCollection.userInterfaceStyle == .dark ? .lightGray : .gray
+            traitCollection.userInterfaceStyle == .dark
+                ? UIColor(white: 0.72, alpha: 1)
+                : UIColor(red: 0.34, green: 0.40, blue: 0.42, alpha: 1)
         })
     }
 
     // MARK: - Background Colors
     static var background: Color {
         Color(UIColor { traitCollection in
-            traitCollection.userInterfaceStyle == .dark ? .black : .white
+            traitCollection.userInterfaceStyle == .dark
+                ? UIColor(red: 0.03, green: 0.05, blue: 0.06, alpha: 1)
+                : UIColor(red: 0.96, green: 0.98, blue: 0.98, alpha: 1)
+        })
+    }
+
+    static var surface: Color {
+        Color(UIColor { traitCollection in
+            traitCollection.userInterfaceStyle == .dark
+                ? UIColor(red: 0.08, green: 0.10, blue: 0.11, alpha: 1)
+                : UIColor.white
+        })
+    }
+
+    static var surfaceElevated: Color {
+        Color(UIColor { traitCollection in
+            traitCollection.userInterfaceStyle == .dark
+                ? UIColor(red: 0.11, green: 0.14, blue: 0.15, alpha: 1)
+                : UIColor(red: 0.985, green: 0.995, blue: 0.995, alpha: 1)
+        })
+    }
+
+    static var cardBorder: Color {
+        Color(UIColor { traitCollection in
+            traitCollection.userInterfaceStyle == .dark
+                ? UIColor(white: 1, alpha: 0.10)
+                : UIColor(red: 0.80, green: 0.87, blue: 0.88, alpha: 1)
+        })
+    }
+
+    static var accentSurface: Color {
+        Color(UIColor { traitCollection in
+            traitCollection.userInterfaceStyle == .dark
+                ? UIColor(red: 0.05, green: 0.20, blue: 0.24, alpha: 1)
+                : UIColor(red: 0.90, green: 0.96, blue: 0.97, alpha: 1)
         })
     }
 
@@ -75,31 +129,31 @@ struct AppColors {
 
     // MARK: - Accent Colors
     static var accent: Color {
-        return .teal
+        brandPrimary
     }
 
     static var accentDisabled: Color {
-        return .teal.opacity(0.4)
+        brandPrimary.opacity(0.38)
     }
 
     // Profile colors
     static var brandTeal: Color {
-        Color(red: 0.02, green: 0.39, blue: 0.48)
+        brandPrimary
     }
 
     static var coverBackground: Color {
-        Color(red: 0.84, green: 0.84, blue: 0.84)
+        brandPrimary
     }
 
     static var avatarPlaceholder: Color {
-        Color(red: 0.90, green: 0.91, blue: 0.92)
+        accentSurface
     }
 
     static var pinColor: Color {
-        Color(red: 0.9, green: 0.2, blue: 0.2)
+        brandPrimary
     }
 
     static var pinGlow: Color {
-        Color(red: 1.0, green: 0.3, blue: 0.3)
+        brandSecondary
     }
 }

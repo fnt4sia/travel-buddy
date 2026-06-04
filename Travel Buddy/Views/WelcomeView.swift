@@ -38,7 +38,7 @@ struct WelcomeView: View {
                         .fontWeight(.semibold)
                         .frame(maxWidth: .infinity)
                         .padding()
-                        .background(Color.teal)
+                        .background(AppColors.accent)
                         .foregroundColor(.white)
                         .clipShape(Capsule())
                 }

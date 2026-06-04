@@ -32,7 +32,7 @@ struct LocationPermissionView: View {
                     Text(viewModel.isLoading ? "Finding location..." : "Allow location access")
                         .frame(maxWidth: .infinity)
                         .padding()
-                        .background(Color.teal)
+                        .background(AppColors.accent)
                         .foregroundColor(.white)
                         .clipShape(Capsule())
                 }

@@ -10,7 +10,7 @@ struct MessagesView: View {
                 VStack(alignment: .leading, spacing: 28) {
                     Text("Messages")
                         .font(.system(size: 38, weight: .bold))
-                        .foregroundColor(.teal)
+                        .foregroundColor(AppColors.accent)
                         .padding(.top, 44)
 
                     if store.joinedGroups.isEmpty {

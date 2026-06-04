@@ -1,33 +1,39 @@
 import Foundation
 
 struct ActivityGroup: Identifiable {
+    static let minimumCapacity = 4
+    static let maximumCapacity = 8
+
     let id: UUID
     let name: String
+    let description: String
     let address: String
     let date: Date
     let meetingTime: String
     let maxCapacity: Int
-    let price: String
     var members: [GroupMember]
 
     init(
         id: UUID = UUID(),
         name: String,
+        description: String,
         address: String,
         date: Date,
         maxCapacity: Int,
         members: [GroupMember],
-        meetingTime: String,
-        price: String
+        meetingTime: String
     ) {
         self.id = id
         self.name = name
+        self.description = description
         self.address = address
         self.date = date
-        self.maxCapacity = maxCapacity
+        self.maxCapacity = min(
+            max(maxCapacity, Self.minimumCapacity),
+            Self.maximumCapacity
+        )
         self.members = members
         self.meetingTime = meetingTime
-        self.price = price
     }
 
     var isFull: Bool {

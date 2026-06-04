@@ -13,6 +13,7 @@ private let colors = AppColors()
 enum OnboardingStep {
     case welcome
     case nameInput
+    case profileDetails
     case locationPermission
     case locationConfirmed
 }
@@ -20,9 +21,15 @@ enum OnboardingStep {
 struct UnifiedOnboardingView: View {
     @State private var currentStep: OnboardingStep = .welcome
     @State private var firstName = ""
+    @State private var ageText = ""
+    @State private var countryOrigin = ""
+    @State private var selectedInterests = Set(CurrentUserProfileStore.defaultInterests)
+    @State private var selectedLanguages = Set(CurrentUserProfileStore.defaultLanguages)
     @State private var city: String?
     @State private var userLocation: CLLocation?
     @State private var keyboardHeight: CGFloat = 0
+    @State private var mascotIdle = false
+    @State private var mascotsAreOffscreen = false
     @AppStorage("hasOnboarded") private var hasOnboarded = false
     @StateObject private var locationViewModel = LocationPermissionViewModel()
 
@@ -36,6 +43,9 @@ struct UnifiedOnboardingView: View {
                 .frame(height: 1200)
                 .ignoresSafeArea(edges: .top)
                 .offset(y: globeOffset)
+
+            mascotLayer
+                .ignoresSafeArea()
 
             // Content overlay
             if currentStep == .welcome {
@@ -101,6 +111,17 @@ struct UnifiedOnboardingView: View {
             }
         }
         .navigationBarHidden(true)
+        .onAppear {
+            withAnimation(.easeInOut(duration: 5.8).repeatForever(autoreverses: true)) {
+                mascotIdle = true
+            }
+        }
+        .onChange(of: currentStep) { _, newStep in
+            let shouldMoveOffscreen = newStep != .welcome
+            withAnimation(.easeInOut(duration: shouldMoveOffscreen ? 1.15 : 0.85)) {
+                mascotsAreOffscreen = shouldMoveOffscreen
+            }
+        }
         .onReceive(
             NotificationCenter.default.publisher(
                 for: UIResponder.keyboardWillShowNotification
@@ -128,6 +149,8 @@ struct UnifiedOnboardingView: View {
             EmptyView()
         case .nameInput:
             nameInputFormContent
+        case .profileDetails:
+            profileDetailsFormContent
         case .locationPermission:
             locationPermissionFormContent
         case .locationConfirmed:
@@ -139,12 +162,7 @@ struct UnifiedOnboardingView: View {
     private var headerView: some View {
         if currentStep != .locationConfirmed {
             HStack {
-                Button(action: {
-                    withAnimation(.easeInOut(duration: 0.6)) {
-                        currentStep =
-                            currentStep == .nameInput ? .welcome : .nameInput
-                    }
-                }) {
+                Button(action: goBack) {
                     Image(systemName: "chevron.left")
                         .foregroundColor(AppColors.primaryText)
                 }
@@ -157,18 +175,19 @@ struct UnifiedOnboardingView: View {
 
                 Spacer()
 
-                Button(action: {
-                    withAnimation(.easeInOut(duration: 0.6)) {
-                        if currentStep == .nameInput {
-                            currentStep = .locationPermission
-                        } else if currentStep == .locationPermission {
+                if currentStep == .locationPermission {
+                    Button(action: {
+                        CurrentUserProfileStore.ensureMemberSince()
+                        withAnimation(.easeInOut(duration: 0.6)) {
                             currentStep = .locationConfirmed
                         }
+                    }) {
+                        Text("Skip")
+                            .font(.caption)
+                            .foregroundColor(AppColors.secondaryText)
                     }
-                }) {
-                    Text("Skip")
-                        .font(.caption)
-                        .foregroundColor(AppColors.secondaryText)
+                } else {
+                    Color.clear.frame(width: 32, height: 18)
                 }
             }
         }
@@ -181,6 +200,11 @@ struct UnifiedOnboardingView: View {
             EmptyView()
         case .nameInput:
             Text("Let's start your\nAdventure!")
+                .font(.largeTitle)
+                .fontWeight(.bold)
+                .foregroundColor(AppColors.primaryText)
+        case .profileDetails:
+            Text("Set your\ntravel vibe")
                 .font(.largeTitle)
                 .fontWeight(.bold)
                 .foregroundColor(AppColors.primaryText)
@@ -223,9 +247,11 @@ struct UnifiedOnboardingView: View {
         case .welcome:
             return ""
         case .nameInput:
-            return "Name — 1 of 2"
+            return "Name - 1 of 3"
+        case .profileDetails:
+            return "Profile - 2 of 3"
         case .locationPermission:
-            return "Location — 2 of 2"
+            return "Location - 3 of 3"
         case .locationConfirmed:
             return ""
         }
@@ -251,7 +277,7 @@ struct UnifiedOnboardingView: View {
                 else { return }
                 UserDefaults.standard.set(firstName, forKey: "userName")
                 withAnimation(.easeInOut(duration: 0.6)) {
-                    currentStep = .locationPermission
+                    currentStep = .profileDetails
                 }
             }) {
                 Text("Let's go")
@@ -266,6 +292,122 @@ struct UnifiedOnboardingView: View {
                     .clipShape(Capsule())
             }
             .disabled(firstName.isEmpty)
+        }
+    }
+
+    private var profileDetailsFormContent: some View {
+        ScrollView(showsIndicators: false) {
+            VStack(alignment: .leading, spacing: 18) {
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("Age")
+                        .font(.headline)
+                        .foregroundColor(AppColors.primaryText)
+
+                    TextField("21", text: $ageText)
+                        .keyboardType(.numberPad)
+                        .padding()
+                        .background(AppColors.textFieldBackground)
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12)
+                                .stroke(AppColors.textFieldBorder, lineWidth: 1)
+                        )
+                }
+
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("Country origin")
+                        .font(.headline)
+                        .foregroundColor(AppColors.primaryText)
+
+                    TextField("Indonesia", text: $countryOrigin)
+                        .textInputAutocapitalization(.words)
+                        .padding()
+                        .background(AppColors.textFieldBackground)
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12)
+                                .stroke(AppColors.textFieldBorder, lineWidth: 1)
+                        )
+                }
+
+                onboardingChoiceSection(
+                    title: "Interests",
+                    options: CurrentUserProfileStore.availableInterests,
+                    selection: selectedInterests,
+                    onTap: { interest in
+                        withAnimation(.spring(response: 0.25, dampingFraction: 0.82)) {
+                            if selectedInterests.contains(interest) {
+                                selectedInterests.remove(interest)
+                            } else {
+                                selectedInterests.insert(interest)
+                            }
+                        }
+                    }
+                )
+
+                onboardingChoiceSection(
+                    title: "Languages spoken",
+                    options: CurrentUserProfileStore.availableLanguages,
+                    selection: selectedLanguages,
+                    onTap: { language in
+                        withAnimation(.spring(response: 0.25, dampingFraction: 0.82)) {
+                            if selectedLanguages.contains(language) {
+                                selectedLanguages.remove(language)
+                            } else {
+                                selectedLanguages.insert(language)
+                            }
+                        }
+                    }
+                )
+
+                Button(action: {
+                    guard saveProfileForOnboarding() else { return }
+                    withAnimation(.easeInOut(duration: 0.6)) {
+                        currentStep = .locationPermission
+                    }
+                }) {
+                    Text("Continue")
+                        .fontWeight(.semibold)
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(
+                            isProfileDetailsReady
+                                ? AppColors.accent : AppColors.accentDisabled
+                        )
+                        .foregroundColor(.white)
+                        .clipShape(Capsule())
+                }
+                .disabled(!isProfileDetailsReady)
+            }
+            .padding(.bottom, 4)
+        }
+        .frame(maxHeight: 470)
+    }
+
+    private func onboardingChoiceSection(
+        title: String,
+        options: [String],
+        selection: Set<String>,
+        onTap: @escaping (String) -> Void
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text(title)
+                .font(.headline)
+                .foregroundColor(AppColors.primaryText)
+
+            FlowLayout(horizontalSpacing: 8, verticalSpacing: 8) {
+                ForEach(options, id: \.self) { option in
+                    Button {
+                        onTap(option)
+                    } label: {
+                        OnboardingChoiceChip(
+                            title: option,
+                            isSelected: selection.contains(option)
+                        )
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
         }
     }
 
@@ -300,6 +442,7 @@ struct UnifiedOnboardingView: View {
 
     private var locationConfirmedFormContent: some View {
         Button(action: {
+            _ = saveProfileForOnboarding()
             if let detectedCity = city {
                 UserDefaults.standard.set(detectedCity, forKey: "userCity")
             }
@@ -316,6 +459,45 @@ struct UnifiedOnboardingView: View {
         }
     }
 
+    private var mascotLayer: some View {
+        GeometryReader { proxy in
+            let width = proxy.size.width
+            let isWelcomePosition = !mascotsAreOffscreen
+            ZStack {
+                Image("teal")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: min(width * 0.58, 276))
+                    .rotationEffect(.degrees(isWelcomePosition ? (mascotIdle ? 2 : -2) : -8))
+                    .position(
+                        x: isWelcomePosition ? width * 0.68 : width * 0.78,
+                        y: isWelcomePosition ? 400 : -320
+                    )
+                    .offset(
+                        x: isWelcomePosition ? (mascotIdle ? 6 : -4) : 0,
+                        y: isWelcomePosition ? (mascotIdle ? -12 : 8) : 0
+                    )
+
+                Image("dark green")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: min(width * 0.42, 184))
+                    .rotationEffect(.degrees(isWelcomePosition ? (mascotIdle ? -4 : -10) : -16))
+                    .position(
+                        x: isWelcomePosition ? width * 0.29 : width * 0.26,
+                        y: isWelcomePosition ? 550 : -260
+                    )
+                    .offset(
+                        x: isWelcomePosition ? (mascotIdle ? -5 : 4) : 0,
+                        y: isWelcomePosition ? (mascotIdle ? 9 : -7) : 0
+                    )
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .allowsHitTesting(false)
+            .animation(.easeInOut(duration: 1.15), value: mascotsAreOffscreen)
+        }
+    }
+
     private var backgroundView: some View {
         if currentStep == .welcome {
             return AnyView(AppColors.welcomeBackground)
@@ -329,6 +511,8 @@ struct UnifiedOnboardingView: View {
         case .welcome:
             return -250
         case .nameInput:
+            return 250
+        case .profileDetails:
             return 250
         case .locationPermission:
             return 250
@@ -366,6 +550,7 @@ struct UnifiedOnboardingView: View {
     }
 
     private func locationPermissionTapped() async {
+        _ = saveProfileForOnboarding()
         await locationViewModel.allowLocationTapped()
         if locationViewModel.navigateToConfirm {
             city = locationViewModel.city
@@ -374,6 +559,101 @@ struct UnifiedOnboardingView: View {
                 currentStep = .locationConfirmed
             }
         }
+    }
+
+    private var parsedAge: Int? {
+        guard let age = Int(ageText.trimmingCharacters(in: .whitespacesAndNewlines)),
+              (13...100).contains(age) else {
+            return nil
+        }
+        return age
+    }
+
+    private var isProfileDetailsReady: Bool {
+        parsedAge != nil
+            && !countryOrigin.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            && !selectedInterests.isEmpty
+            && !selectedLanguages.isEmpty
+    }
+
+    @discardableResult
+    private func saveProfileForOnboarding() -> Bool {
+        let name = firstName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let parsedAge else {
+            CurrentUserProfileStore.ensureMemberSince()
+            return false
+        }
+
+        CurrentUserProfileStore.saveOnboardingProfile(
+            name: name.isEmpty ? "You" : name,
+            age: parsedAge,
+            country: countryOrigin,
+            interests: orderedSelection(
+                selectedInterests,
+                options: CurrentUserProfileStore.availableInterests
+            ),
+            languages: orderedSelection(
+                selectedLanguages,
+                options: CurrentUserProfileStore.availableLanguages
+            )
+        )
+        return true
+    }
+
+    private func orderedSelection(_ selection: Set<String>, options: [String]) -> [String] {
+        let ordered = options.filter { selection.contains($0) }
+        let extras = selection.filter { !options.contains($0) }.sorted()
+        return ordered + extras
+    }
+
+    private func goBack() {
+        withAnimation(.easeInOut(duration: 0.6)) {
+            switch currentStep {
+            case .welcome:
+                break
+            case .nameInput:
+                currentStep = .welcome
+            case .profileDetails:
+                currentStep = .nameInput
+            case .locationPermission:
+                currentStep = .profileDetails
+            case .locationConfirmed:
+                currentStep = .locationPermission
+            }
+        }
+    }
+}
+
+private struct OnboardingChoiceChip: View {
+    let title: String
+    let isSelected: Bool
+
+    var body: some View {
+        HStack(spacing: 6) {
+            if isSelected {
+                Image(systemName: "checkmark")
+                    .font(.system(size: 11, weight: .bold))
+            }
+
+            Text(title)
+                .font(.system(size: 14, weight: .semibold))
+        }
+        .foregroundStyle(isSelected ? .white : AppColors.primaryText)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(
+            isSelected
+                ? AppColors.accent
+                : Color(UIColor.secondarySystemBackground),
+            in: Capsule()
+        )
+        .overlay(
+            Capsule()
+                .stroke(
+                    isSelected ? AppColors.accent : AppColors.textFieldBorder,
+                    lineWidth: 1
+                )
+        )
     }
 }
 

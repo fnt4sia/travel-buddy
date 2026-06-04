@@ -2,6 +2,7 @@ import SwiftUI
 
 struct ProfileView: View {
     @StateObject private var viewModel: ProfileViewModel
+    @ObservedObject private var meetupStore = MeetupStore.shared
 
     init(viewModel: ProfileViewModel = ProfileViewModel()) {
         _viewModel = StateObject(wrappedValue: viewModel)
@@ -9,142 +10,190 @@ struct ProfileView: View {
 
     var body: some View {
         ScrollView(showsIndicators: false) {
-            VStack(alignment: .leading, spacing: ProfileMetrics.Layout.sectionSpacing) {
+            VStack(alignment: .leading, spacing: 18) {
                 header
+                statsSection
                 aboutSection
                 languageSection
                 interestSection
                 if viewModel.hasSocialMedia { socialMediaSection }
             }
+            .padding(.horizontal, ProfileMetrics.Layout.screenPadding)
+            .padding(.top, 16)
             .padding(.bottom, ProfileMetrics.Layout.bottomSafeInset)
         }
-        .background(AppColors.background)
-        .ignoresSafeArea(edges: .top)
+        .background(AppColors.background.ignoresSafeArea())
     }
 
     private var header: some View {
-        ZStack(alignment: .bottomLeading) {
-            AppColors.coverBackground
-                .frame(height: ProfileMetrics.Header.height)
-                .clipShape(
-                    UnevenRoundedRectangle(
-                        bottomLeadingRadius: ProfileMetrics.Header.cornerRadius,
-                        bottomTrailingRadius: ProfileMetrics.Header.cornerRadius
-                    )
-                )
-
-            headerControls
-                .padding(.horizontal, ProfileMetrics.Layout.screenPadding)
-                .padding(.top, 74)
-                .frame(maxHeight: .infinity, alignment: .top)
-
-
-            identityRow
-                .padding(.horizontal, 16)
-                .offset(y: ProfileMetrics.Header.infoOffset)
-        }
-        .padding(.bottom, ProfileMetrics.Header.infoOffset)
-    }
-
-    private var headerControls: some View {
-        HStack {
-//            Button(action: viewModel.backTapped) {
-//                Image(systemName: "chevron.left")
-//                    .font(.system(size: 24, weight: .semibold))
-//                    .foregroundStyle(.black.opacity(0.72))
-//                    .frame(width: ProfileMetrics.Header.backButtonSize,
-//                           height: ProfileMetrics.Header.backButtonSize)
-//                    .background(.white.opacity(0.7), in: Circle())
-//                    .overlay { Circle().stroke(.white, lineWidth: 1) }
-//            }
-
-            Spacer()
-
-            Button("Edit", action: viewModel.editTapped)
-                .font(.system(size: 18, weight: .regular))
-                .foregroundStyle(.white)
-                .padding(.horizontal, 16)
-                .padding(.vertical, 8)
-                .background(AppColors.brandTeal, in: Capsule())
-                .padding(.top, 6)
-        }
-        .buttonStyle(.plain)
-    }
-
-    private var identityRow: some View {
-        HStack(alignment: .bottom, spacing: 12) {
-            ProfileAvatar(imageName: viewModel.profile.profileImageName)
-
-            VStack(alignment: .leading, spacing: 6) {
-                HStack(alignment: .firstTextBaseline, spacing: 5) {
-                    Text(viewModel.profile.name)
-                        .font(.system(size: ProfileMetrics.Font.name, weight: .bold))
+        VStack(alignment: .leading, spacing: 16) {
+            HStack(alignment: .center) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Profile")
+                        .font(.system(size: 32, weight: .bold))
                         .foregroundStyle(AppColors.primaryText)
 
-                    Text(viewModel.ageText)
-                        .font(.system(size: ProfileMetrics.Font.age, weight: .semibold))
+                    Text("Your travel identity")
+                        .font(.system(size: 14, weight: .medium))
                         .foregroundStyle(AppColors.secondaryText)
                 }
 
-                Text(viewModel.profile.bio)
-                    .font(.system(size: ProfileMetrics.Font.bio))
-                    .foregroundStyle(AppColors.secondaryText)
-                    .fixedSize(horizontal: false, vertical: true)
+                Spacer()
+
+                Button(action: viewModel.editTapped) {
+                    Label("Edit", systemImage: "square.and.pencil")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(AppColors.brandPrimary)
+                        .padding(.horizontal, 13)
+                        .padding(.vertical, 9)
+                        .background(AppColors.accentSurface, in: Capsule())
+                        .overlay(Capsule().stroke(AppColors.cardBorder, lineWidth: 1))
+                }
+                .buttonStyle(.plain)
             }
-            .padding(.top, 24)
 
-            Spacer(minLength: 8)
-
-            countryBadge
-                .padding(.bottom, 16)
+            identityPanel
         }
     }
 
+    private var identityPanel: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            HStack(alignment: .top) {
+                ProfileAvatar(imageName: viewModel.profile.profileImageName, size: 92)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: ProfileMetrics.Avatar.cornerRadius, style: .continuous)
+                            .stroke(.white.opacity(0.7), lineWidth: 2)
+                    )
+
+                Spacer()
+
+                countryBadge
+            }
+
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                    Text(viewModel.profile.name)
+                        .font(.system(size: 30, weight: .bold))
+                        .foregroundStyle(.white)
+                        .lineLimit(2)
+                        .minimumScaleFactor(0.72)
+
+                    Text("\(viewModel.profile.age)")
+                        .font(.system(size: 15, weight: .bold))
+                        .foregroundStyle(AppColors.brandPrimary)
+                        .padding(.horizontal, 9)
+                        .padding(.vertical, 5)
+                        .background(.white, in: Capsule())
+                }
+
+                Text(identitySubtitle)
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundStyle(.white.opacity(0.86))
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .padding(20)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            LinearGradient(
+                colors: [AppColors.brandPrimary, AppColors.brandSecondary],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            ),
+            in: RoundedRectangle(cornerRadius: 26, style: .continuous)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 26, style: .continuous)
+                .stroke(.white.opacity(0.18), lineWidth: 1)
+        )
+        .shadow(color: AppColors.brandPrimary.opacity(0.20), radius: 18, x: 0, y: 10)
+    }
+
+    private var identitySubtitle: String {
+        "From \(viewModel.profile.country). Speaks \(languageSummary)."
+    }
+
+    private var languageSummary: String {
+        let languages = Array(viewModel.profile.languages.prefix(2))
+        guard !languages.isEmpty else { return "languages to be added" }
+
+        let suffix = viewModel.profile.languages.count > 2
+            ? " +\(viewModel.profile.languages.count - 2)"
+            : ""
+        return languages.joined(separator: ", ") + suffix
+    }
+
     private var countryBadge: some View {
-        VStack(spacing: 3) {
+        VStack(spacing: 5) {
             Text(viewModel.profile.languageFlag)
-                .font(.system(size: ProfileMetrics.Font.flagEmoji))
+                .font(.system(size: 24))
             Text(viewModel.profile.countryCode)
-                .font(.system(size: ProfileMetrics.Font.countryCode, weight: .medium))
-                .foregroundStyle(AppColors.primaryText)
+                .font(.system(size: 12, weight: .bold))
+                .foregroundStyle(.white)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+        .background(.white.opacity(0.14), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .stroke(.white.opacity(0.20), lineWidth: 1)
+        )
+    }
+
+    private var statsSection: some View {
+        HStack(spacing: 10) {
+            ProfileStatTile(
+                systemImage: "calendar.badge.plus",
+                value: "\(meetupStore.createdGroupsCount)",
+                title: meetupStore.createdGroupsCount == 1 ? "Event created" : "Events created"
+            )
+
+            ProfileStatTile(
+                systemImage: "clock",
+                value: CurrentUserProfileStore.memberSinceText,
+                title: "Member since"
+            )
+
+            ProfileStatTile(
+                systemImage: "globe.asia.australia.fill",
+                value: viewModel.profile.countryCode,
+                title: "Origin"
+            )
         }
     }
 
     private var aboutSection: some View {
-        ProfileSection(icon: "person.fill", title: "About me") {
+        profileCard(icon: "person.fill", title: "About") {
             Text(viewModel.profile.aboutMe)
-                .font(.system(size: ProfileMetrics.Font.body))
+                .font(.system(size: ProfileMetrics.Font.body, weight: .medium))
                 .foregroundStyle(AppColors.secondaryText)
-                .lineSpacing(2)
+                .lineSpacing(3)
                 .fixedSize(horizontal: false, vertical: true)
         }
-        .padding(.horizontal, ProfileMetrics.Layout.screenPadding)
     }
 
     private var languageSection: some View {
-        ProfileSection(icon: "translate", title: "Language") {
-            FlowLayout {
+        profileCard(icon: "translate", title: "Languages spoken") {
+            FlowLayout(horizontalSpacing: 8, verticalSpacing: 8) {
                 ForEach(viewModel.profile.languages, id: \.self) { language in
                     LanguageChip(language: language)
                 }
             }
         }
-        .padding(.horizontal, ProfileMetrics.Layout.screenPadding)
     }
 
     private var interestSection: some View {
-        ProfileSection(icon: "heart.circle.fill", title: "Interest") {
-            FlowLayout {
+        profileCard(icon: "heart.circle.fill", title: "Interests") {
+            FlowLayout(horizontalSpacing: 8, verticalSpacing: 8) {
                 ForEach(viewModel.profile.interests, id: \.self) { interest in
                     InterestChip(interest: interest)
                 }
             }
         }
-        .padding(.horizontal, ProfileMetrics.Layout.screenPadding)
     }
 
     private var socialMediaSection: some View {
-        ProfileSection(icon: "network", title: "Social Media") {
+        profileCard(icon: "network", title: "Social media") {
             VStack(alignment: .leading, spacing: 8) {
                 if let instagram = viewModel.instagramHandle {
                     SocialMediaRow(platform: .instagram, handle: instagram)
@@ -154,7 +203,74 @@ struct ProfileView: View {
                 }
             }
         }
-        .padding(.horizontal, ProfileMetrics.Layout.screenPadding)
+    }
+
+    private func profileCard<Content: View>(
+        icon: String,
+        title: String,
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(spacing: 10) {
+                Image(systemName: icon)
+                    .font(.system(size: 15, weight: .bold))
+                    .foregroundStyle(AppColors.brandPrimary)
+                    .frame(width: 30, height: 30)
+                    .background(AppColors.accentSurface, in: Circle())
+
+                Text(title)
+                    .font(.system(size: 17, weight: .bold))
+                    .foregroundStyle(AppColors.primaryText)
+
+                Spacer()
+            }
+
+            content()
+        }
+        .padding(18)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(AppColors.surface, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 22, style: .continuous)
+                .stroke(AppColors.cardBorder, lineWidth: 1)
+        )
+    }
+}
+
+private struct ProfileStatTile: View {
+    let systemImage: String
+    let value: String
+    let title: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Image(systemName: systemImage)
+                .font(.system(size: 14, weight: .bold))
+                .foregroundStyle(AppColors.brandPrimary)
+                .frame(width: 30, height: 30)
+                .background(AppColors.accentSurface, in: Circle())
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text(value)
+                    .font(.system(size: 16, weight: .bold))
+                    .foregroundStyle(AppColors.primaryText)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.62)
+
+                Text(title)
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(AppColors.secondaryText)
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .frame(maxWidth: .infinity, minHeight: 104, alignment: .topLeading)
+        .padding(12)
+        .background(AppColors.surface, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .stroke(AppColors.cardBorder, lineWidth: 1)
+        )
     }
 }
 
