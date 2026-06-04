@@ -8,8 +8,6 @@
 
 import SwiftUI
 
-/// Compact capsule showing a platform badge and the user's handle,
-/// e.g. [ⓘ @markjohn22]. Used in the read-only "Socials" card.
 struct SocialTag: View {
     let platform: SocialPlatform
     let handle: String

@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+
 struct ProfileSection<Content: View>: View {
     let icon: String
     let title: String

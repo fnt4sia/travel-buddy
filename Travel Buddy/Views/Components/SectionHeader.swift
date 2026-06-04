@@ -5,11 +5,8 @@
 //  Created by Balqis Putri Muharda on 03/06/26.
 //
 
-
 import SwiftUI
 
-/// Reusable "icon + title" header used above every profile section.
-/// Uses semantic text styles so it scales with Dynamic Type.
 struct SectionHeader: View {
     let icon: String
     let title: String

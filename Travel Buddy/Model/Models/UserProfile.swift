@@ -27,7 +27,7 @@ extension UserProfile {
     }
 }
 
-// data dummy before using SwiftData
+// Data dummy before using SwiftData
 extension UserProfile {
     static let currentUserMock = UserProfile(
         name: "Mark",
@@ -348,7 +348,7 @@ extension UserProfile {
 }
 
 
-// Mock by user inter
+// Mock by user interface
 extension UserProfile {
     static let otherUserMock = UserProfile(
         name: "John",

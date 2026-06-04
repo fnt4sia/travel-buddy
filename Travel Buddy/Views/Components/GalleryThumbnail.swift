@@ -8,8 +8,6 @@
 
 import SwiftUI
 
-/// A single rounded gallery image with a graceful placeholder when the asset
-/// is missing.
 struct GalleryThumbnail: View {
     let imageName: String
     var size: CGFloat = 150
@@ -44,7 +42,6 @@ struct GalleryThumbnail: View {
     }
 }
 
-/// Horizontally scrollable row of gallery thumbnails.
 struct GalleryStrip: View {
     let imageNames: [String]
     var horizontalPadding: CGFloat = ProfileMetrics.Layout.screenPadding

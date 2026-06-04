@@ -5,11 +5,8 @@
 //  Created by Balqis Putri Muharda on 03/06/26.
 //
 
-
 import SwiftUI
 
-/// Rounded, bordered card that wraps section content on the gradient background.
-/// Uses `AppColors.formBackground` / `formBorder` so it adapts to light & dark.
 struct SectionCard<Content: View>: View {
     @ViewBuilder var content: Content
 
