@@ -17,7 +17,6 @@ struct ProfileView: View {
         ScrollView(showsIndicators: false) {
             VStack(alignment: .leading, spacing: 18) {
                 header
-                statsSection
                 aboutSection
                 languageSection
                 interestSection
@@ -51,6 +50,7 @@ struct ProfileView: View {
     private var identityPanel: some View {
         VStack(alignment: .leading, spacing: 18) {
             HStack(alignment: .top) {
+                
                 ZStack(alignment: .bottomTrailing) {
                     ProfileAvatar(
                         imageName: viewModel.profile.profileImageName,
@@ -69,9 +69,19 @@ struct ProfileView: View {
                         .offset(x: 6, y: 6)
                     }
                 }
-
                 Spacer()
                 countryBadge
+                // I need to edit this huhu not yet fixed
+                    .overlay(alignment: .topTrailing) {
+                            if canEdit {
+                                EditPencil(onLight: true, label: "profile info") {
+                                    viewModel.presentEditor(.identity)
+                                }
+                                .padding(.leading, 128)
+                                .padding(.trailing, 32)
+                            }
+                        }
+                
             }
 
             VStack(alignment: .leading, spacing: 8) {
@@ -81,19 +91,13 @@ struct ProfileView: View {
                         .foregroundStyle(.white)
                         .lineLimit(2)
                         .minimumScaleFactor(0.72)
-
+                    
                     Text("\(viewModel.profile.age)")
                         .font(.system(size: 15, weight: .bold))
                         .foregroundStyle(AppColors.brandPrimary)
                         .padding(.horizontal, 9)
                         .padding(.vertical, 5)
                         .background(.white, in: Capsule())
-
-                    if canEdit {
-                        EditPencil(onLight: true, label: "name") {
-                            viewModel.presentEditor(.name)
-                        }
-                    }
                 }
 
                 Text(identitySubtitle)
@@ -147,26 +151,6 @@ struct ProfileView: View {
             RoundedRectangle(cornerRadius: 16, style: .continuous)
                 .stroke(.white.opacity(0.20), lineWidth: 1)
         )
-    }
-
-    private var statsSection: some View {
-        HStack(spacing: 10) {
-            ProfileStatTile(
-                systemImage: "calendar.badge.plus",
-                value: "\(meetupStore.createdGroupsCount)",
-                title: meetupStore.createdGroupsCount == 1 ? "Event created" : "Events created"
-            )
-            ProfileStatTile(
-                systemImage: "clock",
-                value: CurrentUserProfileStore.memberSinceText,
-                title: "Member since"
-            )
-            ProfileStatTile(
-                systemImage: "globe.asia.australia.fill",
-                value: viewModel.profile.countryCode,
-                title: "Origin"
-            )
-        }
     }
 
     private var aboutSection: some View {
@@ -262,6 +246,12 @@ struct ProfileView: View {
                 initialImageData: viewModel.profile.profileImageData,
                 fallbackImageName: viewModel.profile.profileImageName,
                 onSave: viewModel.updateProfileImage
+            )
+        case .identity:
+            IdentityEditorSheet(
+                initialName: viewModel.profile.name,
+                initialCountry: viewModel.profile.country,
+                onSave: viewModel.updateNameAndCountry
             )
         case .name:
             NameEditorSheet(initialName: viewModel.profile.name, onSave: viewModel.updateName)
@@ -519,6 +509,66 @@ private struct MultiSelectChipPicker: View {
         }
         .presentationDetents([.medium, .large])
         .presentationDragIndicator(.visible)
+    }
+}
+
+private struct IdentityEditorSheet: View {
+    let initialName: String
+    let initialCountry: String
+    let onSave: (String, String) -> Void
+    @Environment(\.dismiss) private var dismiss
+    @State private var name: String
+    @State private var country: String
+    @FocusState private var focusedName: Bool
+
+    init(initialName: String, initialCountry: String, onSave: @escaping (String, String) -> Void) {
+        self.initialName = initialName
+        self.initialCountry = initialCountry
+        self.onSave = onSave
+        _name = State(initialValue: initialName)
+        _country = State(initialValue: initialCountry)
+    }
+
+    private var trimmedName: String { name.trimmingCharacters(in: .whitespacesAndNewlines) }
+    private var trimmedCountry: String { country.trimmingCharacters(in: .whitespacesAndNewlines) }
+    private var canSave: Bool {
+        !trimmedName.isEmpty && !trimmedCountry.isEmpty &&
+            (trimmedName != initialName || trimmedCountry != initialCountry)
+    }
+
+    var body: some View {
+        EditSheetScaffold(title: "Profile", canSave: canSave,
+                          onCancel: { dismiss() },
+                          onSave: { onSave(trimmedName, trimmedCountry); dismiss() }) {
+            VStack(alignment: .leading, spacing: 18) {
+                EditorFieldLabel(text: "Display name")
+                TextField("Your name", text: $name)
+                    .font(.system(size: 16, weight: .medium))
+                    .foregroundStyle(AppColors.primaryText)
+                    .textInputAutocapitalization(.words)
+                    .autocorrectionDisabled()
+                    .submitLabel(.done)
+                    .focused($focusedName)
+                    .onSubmit { if canSave { onSave(trimmedName, trimmedCountry); dismiss() } }
+                    .profileFieldBackground()
+
+                EditorFieldLabel(text: "Country origin")
+                TextField("Indonesia", text: $country)
+                    .font(.system(size: 16, weight: .medium))
+                    .foregroundStyle(AppColors.primaryText)
+                    .textInputAutocapitalization(.words)
+                    .autocorrectionDisabled()
+                    .submitLabel(.done)
+                    .profileFieldBackground()
+
+                Text("This is how other travelers will see your nationality and flag.")
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(AppColors.secondaryText)
+            }
+        }
+        .presentationDetents([.medium, .large])
+        .presentationDragIndicator(.visible)
+        .onAppear { focusedName = true }
     }
 }
 

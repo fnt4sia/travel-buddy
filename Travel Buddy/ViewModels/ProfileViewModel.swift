@@ -9,7 +9,7 @@ import SwiftUI
 import Combine
 
 enum ProfileEditTarget: Identifiable {
-    case photo, name, about, languages, interests, socials, gallery
+    case photo, name, about, languages, interests, socials, gallery, identity
     var id: Self { self }
 }
 
@@ -76,6 +76,15 @@ final class ProfileViewModel: ObservableObject {
     func replaceGallery(_ photos: [GalleryPhoto]) {
         profile.gallery = photos
         persist()
+    }
+    
+    func updateNameAndCountry(_ name: String, country: String) {
+            let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
+            let trimmedCountry = country.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !trimmedName.isEmpty, !trimmedCountry.isEmpty else { return }
+            profile.name = trimmedName
+            profile.updateCountry(to: trimmedCountry)
+            persist()
     }
 
     static func normalizedHandle(_ raw: String?) -> String? {

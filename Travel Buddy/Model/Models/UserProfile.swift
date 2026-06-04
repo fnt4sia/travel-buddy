@@ -63,6 +63,15 @@ struct UserProfile: Identifiable {
         self.profileImageData = profileImageData
         self.gallery = gallery
     }
+    
+    mutating func updateCountry(to newCountry: String) {
+            let trimmed = newCountry.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !trimmed.isEmpty else { return }
+            var country = trimmed
+            var languageFlag = CountryMetadata.flag(for: trimmed)
+            var countryCode = CountryMetadata.code(for: trimmed)
+            var bio = "\(trimmed) origin • \(languages.joined(separator: ", "))"
+        }
 }
 
 extension UserProfile {
