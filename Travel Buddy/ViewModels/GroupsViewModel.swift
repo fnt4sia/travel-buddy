@@ -158,9 +158,9 @@ final class MeetupStore: ObservableObject {
                 name: "Morning Adventure",
                 address: "Jl. Monkey Forest, Ubud, Kecamatan Ubud",
                 date: Calendar.current.date(byAdding: .day, value: 0, to: Date()) ?? Date(),
-                maxCapacity: 5,
+                maxCapacity: 4,
                 members: [
-                    GroupMember(name: "Agustina Juan", color: "blue"),
+                    GroupMember(name: "Agustinus Juan", color: "blue"),
                     GroupMember(name: "Rani", color: "green"),
                 ],
                 meetingTime: "09:00 - 15:00 GMT+8",
@@ -170,7 +170,7 @@ final class MeetupStore: ObservableObject {
                 name: "Sunset Explorer",
                 address: "Jl. Raya Ubud No.35, Ubud, Kecamatan Ubud",
                 date: Calendar.current.date(byAdding: .day, value: 0, to: Date()) ?? Date(),
-                maxCapacity: 5,
+                maxCapacity: 7,
                 members: [
                     GroupMember(name: "Jody", color: "purple"),
                     GroupMember(name: "Balqis", color: "orange"),

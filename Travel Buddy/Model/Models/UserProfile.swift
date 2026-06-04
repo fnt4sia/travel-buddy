@@ -45,8 +45,8 @@ extension UserProfile {
 // Mock profiles for group members
 extension UserProfile {
     static let mockProfiles: [String: UserProfile] = [
-        "Agustina Juan": UserProfile(
-            name: "Agustina Juan",
+        "Agustinus Juan": UserProfile(
+            name: "Agustinus Juan",
             age: 22,
             interests: ["Photography", "Museums", "Music"],
             languages: ["Indonesian", "English"],
