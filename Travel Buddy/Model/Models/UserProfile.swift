@@ -129,6 +129,7 @@ enum CurrentUserProfileStore {
             fallback: defaultLanguages
         )
 
+        // User-edited overrides fall back to generated defaults when absent.
         let savedAbout = clean(defaults.string(forKey: Keys.aboutMe))
         let about = savedAbout ?? aboutText(interests: interests, languages: languages)
         let instagram = clean(defaults.string(forKey: Keys.instagram))
@@ -170,7 +171,6 @@ enum CurrentUserProfileStore {
         } else {
             defaults.removeObject(forKey: Keys.profileImage)
         }
-
         defaults.set(profile.gallery.map { $0.imageData }, forKey: Keys.gallery)
         ensureMemberSince()
     }
@@ -594,4 +594,3 @@ extension UserProfile {
         )
     }
 }
-

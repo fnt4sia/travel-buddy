@@ -49,4 +49,3 @@ struct ProfileAvatar: View {
     ProfileAvatar(imageName: "missing_asset")
         .padding()
 }
-

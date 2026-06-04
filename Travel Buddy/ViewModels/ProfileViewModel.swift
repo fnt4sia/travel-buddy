@@ -13,11 +13,8 @@ enum ProfileEditTarget: Identifiable {
     var id: Self { self }
 }
 
-@MainActor
 final class ProfileViewModel: ObservableObject {
     @Published private(set) var profile: UserProfile
-
-    @Published var isEditing = false
 
     @Published var editTarget: ProfileEditTarget?
 
@@ -37,13 +34,6 @@ final class ProfileViewModel: ObservableObject {
     var twitterHandle: String? { profile.twitterHandle }
     var hasSocialMedia: Bool { profile.instagramHandle != nil || profile.twitterHandle != nil }
     var hasGallery: Bool { !profile.gallery.isEmpty }
-
-    func toggleEditing() {
-        withAnimation(.spring(response: 0.32, dampingFraction: 0.82)) {
-            isEditing.toggle()
-        }
-        if !isEditing { editTarget = nil }
-    }
 
     func presentEditor(_ target: ProfileEditTarget) {
         guard isEditable else { return }
@@ -88,7 +78,7 @@ final class ProfileViewModel: ObservableObject {
         persist()
     }
 
-    nonisolated static func normalizedHandle(_ raw: String?) -> String? {
+    static func normalizedHandle(_ raw: String?) -> String? {
         guard let raw else { return nil }
         var value = raw.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !value.isEmpty else { return nil }
@@ -101,4 +91,3 @@ final class ProfileViewModel: ObservableObject {
         CurrentUserProfileStore.saveEditableProfile(profile)
     }
 }
-

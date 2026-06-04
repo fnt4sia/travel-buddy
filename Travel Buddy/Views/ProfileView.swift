@@ -6,10 +6,13 @@ struct ProfileView: View {
     @ObservedObject private var meetupStore = MeetupStore.shared
 
     init(viewModel: ProfileViewModel? = nil) {
-        _viewModel = StateObject(
-            wrappedValue: viewModel ?? ProfileViewModel()
-        )
-    }
+            _viewModel = StateObject(
+                wrappedValue: viewModel ?? ProfileViewModel()
+            )
+        }
+    
+    private var canEdit: Bool { viewModel.isEditable }
+
     var body: some View {
         ScrollView(showsIndicators: false) {
             VStack(alignment: .leading, spacing: 18) {
@@ -18,8 +21,8 @@ struct ProfileView: View {
                 aboutSection
                 languageSection
                 interestSection
-                if viewModel.isEditing || viewModel.hasSocialMedia { socialMediaSection }
-                if viewModel.isEditing || viewModel.hasGallery { gallerySection }
+                if canEdit || viewModel.hasSocialMedia { socialMediaSection }
+                if canEdit || viewModel.hasGallery { gallerySection }
             }
             .padding(.horizontal, ProfileMetrics.Layout.screenPadding)
             .padding(.top, 16)
@@ -28,7 +31,6 @@ struct ProfileView: View {
         .background(AppColors.background.ignoresSafeArea())
         .sheet(item: $viewModel.editTarget) { editorSheet(for: $0) }
     }
-
     private var header: some View {
         VStack(alignment: .leading, spacing: 16) {
             HStack(alignment: .center) {
@@ -41,30 +43,9 @@ struct ProfileView: View {
                         .foregroundStyle(AppColors.secondaryText)
                 }
                 Spacer()
-                if viewModel.isEditable { editToggleButton }
             }
             identityPanel
         }
-    }
-
-    private var editToggleButton: some View {
-        Button(action: viewModel.toggleEditing) {
-            Label(
-                viewModel.isEditing ? "Done" : "Edit",
-                systemImage: viewModel.isEditing ? "checkmark" : "square.and.pencil"
-            )
-            .font(.system(size: 14, weight: .semibold))
-            .foregroundStyle(viewModel.isEditing ? .white : AppColors.brandPrimary)
-            .padding(.horizontal, 13)
-            .padding(.vertical, 9)
-            .background(
-                viewModel.isEditing ? AnyShapeStyle(AppColors.brandPrimary) : AnyShapeStyle(AppColors.accentSurface),
-                in: Capsule()
-            )
-            .overlay(Capsule().stroke(viewModel.isEditing ? .clear : AppColors.cardBorder, lineWidth: 1))
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel(viewModel.isEditing ? "Finish editing" : "Edit profile")
     }
 
     private var identityPanel: some View {
@@ -81,7 +62,7 @@ struct ProfileView: View {
                             .stroke(.white.opacity(0.7), lineWidth: 2)
                     )
 
-                    if viewModel.isEditing {
+                    if canEdit {
                         EditPencil(onLight: true, label: "profile photo") {
                             viewModel.presentEditor(.photo)
                         }
@@ -108,7 +89,7 @@ struct ProfileView: View {
                         .padding(.vertical, 5)
                         .background(.white, in: Capsule())
 
-                    if viewModel.isEditing {
+                    if canEdit {
                         EditPencil(onLight: true, label: "name") {
                             viewModel.presentEditor(.name)
                         }
@@ -190,8 +171,7 @@ struct ProfileView: View {
 
     private var aboutSection: some View {
         SectionCard(icon: "person.fill", title: "About",
-                    isEditing: viewModel.isEditing,
-                    onEdit: { viewModel.presentEditor(.about) }) {
+                    onEdit: canEdit ? { viewModel.presentEditor(.about) } : nil) {
             Text(viewModel.profile.aboutMe)
                 .font(.system(size: ProfileMetrics.Font.body, weight: .medium))
                 .foregroundStyle(AppColors.secondaryText)
@@ -202,8 +182,7 @@ struct ProfileView: View {
 
     private var languageSection: some View {
         SectionCard(icon: "translate", title: "Languages spoken",
-                    isEditing: viewModel.isEditing,
-                    onEdit: { viewModel.presentEditor(.languages) }) {
+                    onEdit: canEdit ? { viewModel.presentEditor(.languages) } : nil) {
             FlowLayout(horizontalSpacing: 8, verticalSpacing: 8) {
                 ForEach(viewModel.profile.languages, id: \.self) { LanguageChip(language: $0) }
             }
@@ -212,8 +191,7 @@ struct ProfileView: View {
 
     private var interestSection: some View {
         SectionCard(icon: "heart.circle.fill", title: "Interests",
-                    isEditing: viewModel.isEditing,
-                    onEdit: { viewModel.presentEditor(.interests) }) {
+                    onEdit: canEdit ? { viewModel.presentEditor(.interests) } : nil) {
             FlowLayout(horizontalSpacing: 8, verticalSpacing: 8) {
                 ForEach(viewModel.profile.interests, id: \.self) { InterestChip(interest: $0) }
             }
@@ -222,8 +200,7 @@ struct ProfileView: View {
 
     private var socialMediaSection: some View {
         SectionCard(icon: "network", title: "Social media",
-                    isEditing: viewModel.isEditing,
-                    onEdit: { viewModel.presentEditor(.socials) }) {
+                    onEdit: canEdit ? { viewModel.presentEditor(.socials) } : nil) {
             if viewModel.hasSocialMedia {
                 VStack(alignment: .leading, spacing: 8) {
                     if let instagram = viewModel.instagramHandle {
@@ -241,8 +218,7 @@ struct ProfileView: View {
 
     private var gallerySection: some View {
         SectionCard(icon: "photo.on.rectangle.angled", title: "Gallery",
-                    isEditing: viewModel.isEditing,
-                    onEdit: { viewModel.presentEditor(.gallery) }) {
+                    onEdit: canEdit ? { viewModel.presentEditor(.gallery) } : nil) {
             if viewModel.hasGallery {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 10) {
@@ -367,14 +343,12 @@ private struct EditPencil: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel("Edit \(label)")
-        .transition(.scale.combined(with: .opacity))
     }
 }
 
 private struct SectionCard<Content: View>: View {
     let icon: String
     let title: String
-    var isEditing: Bool = false
     var onEdit: (() -> Void)? = nil
     @ViewBuilder var content: Content
 
@@ -390,7 +364,7 @@ private struct SectionCard<Content: View>: View {
                     .font(.system(size: 17, weight: .bold))
                     .foregroundStyle(AppColors.primaryText)
                 Spacer()
-                if isEditing, let onEdit { EditPencil(label: title, action: onEdit) }
+                if let onEdit { EditPencil(label: title, action: onEdit) }
             }
             content
         }
@@ -401,9 +375,6 @@ private struct SectionCard<Content: View>: View {
     }
 }
 
-// MARK: - Shared sheet chrome
-
-/// NavigationStack + leading Cancel + trailing emphasized Save (HIG modal edit).
 private struct EditSheetScaffold<Content: View>: View {
     let title: String
     var canSave: Bool = true
@@ -450,7 +421,6 @@ private struct EditorFieldLabel: View {
 }
 
 private extension View {
-    /// Surface/border treatment matching the profile cards.
     func profileFieldBackground() -> some View {
         padding(14)
             .background(AppColors.surface, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
@@ -887,4 +857,3 @@ private struct GalleryEditorSheet: View {
 #Preview("Other member (read-only)") {
     ProfileView(viewModel: ProfileViewModel(profile: .profile(for: "Maria")))
 }
-
