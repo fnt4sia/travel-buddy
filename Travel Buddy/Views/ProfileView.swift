@@ -73,14 +73,13 @@ struct ProfileView: View {
                 countryBadge
                 // I need to edit this huhu not yet fixed
                     .overlay(alignment: .topTrailing) {
-                            if canEdit {
-                                EditPencil(onLight: true, label: "profile info") {
-                                    viewModel.presentEditor(.identity)
-                                }
-                                .padding(.leading, 128)
-                                .padding(.trailing, 32)
+                        if canEdit {
+                            EditPencil(onLight: true, label: "profile info") {
+                                viewModel.presentEditor(.identity)
                             }
+                            .offset(x: 24, y: -30)
                         }
+                    }
                 
             }
 
