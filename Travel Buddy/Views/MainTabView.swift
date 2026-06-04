@@ -50,7 +50,7 @@ struct MainTabView: View {
                 case .messages:
                     MessagesView(chatPath: $messagePath)
                 case .explore:
-                    MainMapView(onOpenChat: openMessageRoom)
+                    MainMapView()
                 case .profile:
                     ProfileView()
                 }

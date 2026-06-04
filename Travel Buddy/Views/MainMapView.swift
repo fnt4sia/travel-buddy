@@ -1,10 +1,3 @@
-//
-//  MainMapView.swift
-//  Travel Buddy
-//
-//  Created by Balqis Putri Muharda on 29/05/26.
-//
-
 import MapKit
 import SwiftUI
 
@@ -83,210 +76,107 @@ struct Triangle: Shape {
     }
 }
 
-// MARK: - Remote photo for the detail sheet
-
-struct RemotePlacePhoto: View {
-    let url: URL?
-    let category: PlaceCategory
-
-    var body: some View {
-        ZStack {
-            Color(UIColor.secondarySystemBackground)
-            if let url {
-                AsyncImage(url: url) { phase in
-                    switch phase {
-                    case .success(let image):
-                        image.resizable().scaledToFill()
-                    case .empty:
-                        ProgressView()
-                    default:
-                        placeholder
-                    }
-                }
-            } else {
-                placeholder
-            }
-        }
-    }
-
-    private var placeholder: some View {
-        Image(systemName: category.icon)
-            .font(.system(size: 44))
-            .foregroundStyle(AppColors.accent.opacity(0.6))
-    }
-}
-
 // MARK: - Detail sheet
+// Shows place info + inline meetup preview.
+// "View Meetups" pushes ActivityGroupsView inside the same NavigationStack.
 
 struct PlaceDetailSheet: View {
     let place: PlaceAnnotation
-    let onOpenChat: (UUID) -> Void
+
     @StateObject private var groupsViewModel = GroupsViewModel()
     @State private var showDatePicker = false
     @State private var showCreateMeetup = false
 
+    // Route enum lives here so the NavigationStack can push ActivityGroupsView
+    enum PlaceRoute: Hashable {
+        case meetups
+        case detail(UUID)
+        case chat(UUID)
+    }
+    @State private var path: [PlaceRoute] = []
+
+    // Confirmation popup — full-screen so it overlays the whole sheet
+    enum PendingConfirmation { case join(ActivityGroup), leave(ActivityGroup) }
+    @State private var pendingConfirmation: PendingConfirmation?
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            Capsule()
-                .fill(Color(UIColor.separator))
-                .frame(width: 36, height: 4)
-                .frame(maxWidth: .infinity)
-                .padding(.top, 10)
-                .padding(.bottom, 16)
+        // Drag indicator sits outside the NavigationStack so it
+        // stays visible even after pushing a child page
+        ZStack {
+            VStack(spacing: 0) {
+                Capsule()
+                    .fill(Color(UIColor.separator))
+                    .frame(width: 36, height: 4)
+                    .frame(maxWidth: .infinity)
+                    .padding(.top, 10)
+                    .padding(.bottom, 4)
 
-            ScrollView(showsIndicators: false) {
-                VStack(alignment: .leading, spacing: 16) {
-                    // Place Details
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text(place.name)
-                            .font(.title)
-                            .fontWeight(.bold)
-                            .foregroundStyle(AppColors.primaryText)
+                NavigationStack(path: $path) {
+                    placeDetailContent
+                        .navigationDestination(for: PlaceRoute.self) { route in
+                            switch route {
 
-                        Text(place.address)
-                            .font(.caption)
-                            .foregroundStyle(AppColors.secondaryText)
-                            .lineLimit(2)
-                    }
-                    .padding(.horizontal, 20)
+                            case .meetups:
+                                ActivityGroupsView(place: place)
 
-                    // category badge
-                    Label(
-                        place.category.rawValue.capitalized,
-                        systemImage: place.category.icon
-                    )
-                    .font(.caption)
-                    .fontWeight(.medium)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 5)
-                    .background(AppColors.accent.opacity(0.12))
-                    .foregroundStyle(AppColors.accent)
-                    .clipShape(Capsule())
-                    .padding(.horizontal, 20)
-
-                    // for image
-                    AsyncImage(url: place.photoURL) { image in
-                        image
-                            .resizable()
-                            .scaledToFill()
-                    } placeholder: {
-                        ZStack {
-                            Color(UIColor.secondarySystemBackground)
-
-                            Image(systemName: "photo")
-                                .font(.largeTitle)
-                                .foregroundStyle(AppColors.accent)
-                        }
-                    }
-                    .frame(height: 200)
-                    .clipShape(RoundedRectangle(cornerRadius: 14))
-                    .padding(.horizontal, 20)
-
-                    // description text
-                    Text(place.description)
-                        .font(.body)
-                        .foregroundStyle(AppColors.primaryText.opacity(0.85))
-                        .lineSpacing(4)
-                        .padding(.horizontal, 20)
-
-                    // Available Meetups Section
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text("Available Meetups")
-                            .font(.headline)
-                            .fontWeight(.bold)
-                            .foregroundStyle(AppColors.primaryText)
-                            .padding(.horizontal, 20)
-
-                        // Date Picker Section
-                        VStack(spacing: 12) {
-                            HStack(spacing: 12) {
-                                Button(action: { showDatePicker = true }) {
-                                    HStack {
-                                        Image(systemName: "calendar")
-                                            .foregroundStyle(AppColors.accent)
-                                        Text(
-                                            groupsViewModel.selectedDate
-                                                .formatted(
-                                                    date: .abbreviated,
-                                                    time: .omitted
-                                                )
-                                        )
-                                        .foregroundStyle(AppColors.primaryText)
-                                        Spacer()
-                                    }
-                                    .padding(.horizontal, 12)
-                                    .padding(.vertical, 10)
-                                    .background(
-                                        Color(UIColor.secondarySystemBackground)
-                                    )
-                                    .cornerRadius(20)
-                                }
-
-                                Button(action: { showCreateMeetup = true }) {
-                                    HStack(spacing: 8) {
-                                        Image(systemName: "plus")
-                                        Text("Create")
-                                    }
-                                    .font(.body)
-                                    .fontWeight(.semibold)
-                                    .frame(maxWidth: .infinity)
-                                    .padding(.vertical, 10)
-                                    .background(AppColors.accent)
-                                    .foregroundStyle(.white)
-                                    .cornerRadius(20)
-                                }
-                            }
-                        }
-                        .padding(.horizontal, 20)
-
-                        // Groups List
-                        if groupsViewModel.availableGroups.isEmpty {
-                            VStack(spacing: 8) {
-                                Image(systemName: "calendar.badge.exclamationmark")
-                                    .font(.system(size: 20))
-                                    .foregroundStyle(
-                                        AppColors.secondaryText
-                                    )
-                                Text("No meetups available")
-                                    .font(.caption)
-                                    .foregroundStyle(
-                                        AppColors.secondaryText
-                                    )
-                            }
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 20)
-                        } else {
-                            VStack(spacing: 12) {
-                                ForEach(groupsViewModel.availableGroups) {
-                                    group in
-                                    GroupRowView(
+                            case .detail(let groupID):
+                                if let group = MeetupStore.shared.group(with: groupID) {
+                                    GroupDetailView(
                                         group: group,
-                                        hasJoined:
-                                            groupsViewModel.hasJoinedGroup(
-                                                group
-                                            ),
-                                        onJoinTapped: {
-                                            navigateToChat(afterJoining: group)
-                                        },
-                                        onLeaveTapped: {
-                                            groupsViewModel.leaveGroup(
-                                                group
-                                            )
+                                        hasJoined: groupsViewModel.hasJoinedGroup(group),
+                                        pendingConfirmation: .constant(nil),
+                                        openChat: {
+                                            path.append(.chat(groupID))
                                         }
                                     )
                                 }
+
+                            case .chat(let groupID):
+                                GroupChatView(groupID: groupID, showsCloseButton: false)
                             }
-                            .padding(.horizontal, 20)
                         }
-                    }
-                    .padding(.vertical, 16)
-                    .padding(.bottom, 20)
                 }
             }
-        }
-        .background(Color(UIColor.systemBackground))
-        .onAppear {
-            groupsViewModel.refreshAvailableGroups()
+            .background(Color(UIColor.systemBackground))
+
+            // Full-screen confirmation popup
+            if let pending = pendingConfirmation {
+                Color.black.opacity(0.4)
+                    .ignoresSafeArea()
+                    .transition(.opacity)
+
+                GroupActionConfirmationPopup(
+                    title: {
+                        if case .join = pending { return "Join Meetup" }
+                        return "Leave Meetup"
+                    }(),
+                    message: {
+                        if case .join = pending {
+                            return "You will be added to this meetup and can access the group chat."
+                        }
+                        return "You will be removed from the meetup and lose access to the group chat."
+                    }(),
+                    cancelTitle: "Back",
+                    confirmTitle: {
+                        if case .join = pending { return "Join" }
+                        return "Leave"
+                    }(),
+                    onCancel: { withAnimation { pendingConfirmation = nil } },
+                    onConfirm: {
+                        let captured = pending
+                        withAnimation { pendingConfirmation = nil }
+                        switch captured {
+                        case .join(let group):
+                            if let joined = groupsViewModel.joinGroup(group) {
+                                path = [.chat(joined.id)]
+                            }
+                        case .leave(let group):
+                            groupsViewModel.leaveGroup(group)
+                        }
+                    }
+                )
+                .transition(.scale(scale: 0.95).combined(with: .opacity))
+            }
         }
         .sheet(isPresented: $showDatePicker) {
             DatePickerSheetContent(
@@ -302,7 +192,7 @@ struct PlaceDetailSheet: View {
                 defaultName: "\(place.name) Meetup",
                 defaultAddress: place.address,
                 onCreate: { name, address, date, meetingTime, maxCapacity, price in
-                    if let createdGroup = groupsViewModel.createGroup(
+                    if let created = groupsViewModel.createGroup(
                         name: name,
                         address: address,
                         date: date,
@@ -310,7 +200,7 @@ struct PlaceDetailSheet: View {
                         maxCapacity: maxCapacity,
                         price: price
                     ) {
-                        onOpenChat(createdGroup.id)
+                        path = [.chat(created.id)]
                     }
                 }
             )
@@ -326,9 +216,148 @@ struct PlaceDetailSheet: View {
         }
     }
 
-    private func navigateToChat(afterJoining group: ActivityGroup) {
-        if let joinedGroup = groupsViewModel.joinGroup(group) {
-            onOpenChat(joinedGroup.id)
+    // MARK: - Place detail root page (no navigation bar)
+
+    private var placeDetailContent: some View {
+        ScrollView(showsIndicators: false) {
+            VStack(alignment: .leading, spacing: 16) {
+
+                // Name + address
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(place.name)
+                        .font(.title)
+                        .fontWeight(.bold)
+                        .foregroundStyle(AppColors.primaryText)
+
+                    Text(place.address)
+                        .font(.caption)
+                        .foregroundStyle(AppColors.secondaryText)
+                        .lineLimit(2)
+                }
+                .padding(.horizontal, 20)
+
+                // Category badge
+                Label(
+                    place.category.rawValue.capitalized,
+                    systemImage: place.category.icon
+                )
+                .font(.caption)
+                .fontWeight(.medium)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 5)
+                .background(AppColors.accent.opacity(0.12))
+                .foregroundStyle(AppColors.accent)
+                .clipShape(Capsule())
+                .padding(.horizontal, 20)
+
+                // Photo
+                AsyncImage(url: place.photoURL) { image in
+                    image.resizable().scaledToFill()
+                } placeholder: {
+                    ZStack {
+                        Color(UIColor.secondarySystemBackground)
+                        Image(systemName: "photo")
+                            .font(.largeTitle)
+                            .foregroundStyle(AppColors.accent)
+                    }
+                }
+                .frame(height: 200)
+                .clipShape(RoundedRectangle(cornerRadius: 14))
+                .padding(.horizontal, 20)
+
+                // Description
+                Text(place.description)
+                    .font(.body)
+                    .foregroundStyle(AppColors.primaryText.opacity(0.85))
+                    .lineSpacing(4)
+                    .padding(.horizontal, 20)
+
+                // ── Inline meetup section ──────────────────────────────
+
+                VStack(alignment: .leading, spacing: 12) {
+
+                    // Section header + "View All" button
+                    HStack {
+                        Text("Available Meetups")
+                            .font(.headline)
+                            .fontWeight(.bold)
+                            .foregroundStyle(AppColors.primaryText)
+
+                        Spacer()
+                    }
+                    .padding(.horizontal, 20)
+
+                    // Date + Create row
+                    HStack(spacing: 12) {
+                        Button(action: { showDatePicker = true }) {
+                            HStack {
+                                Image(systemName: "calendar")
+                                    .foregroundStyle(AppColors.accent)
+                                Text(
+                                    groupsViewModel.selectedDate.formatted(
+                                        date: .abbreviated, time: .omitted
+                                    )
+                                )
+                                .foregroundStyle(AppColors.primaryText)
+                                Spacer()
+                            }
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 10)
+                            .background(Color(UIColor.secondarySystemBackground))
+                            .cornerRadius(8)
+                        }
+
+                        Button(action: { showCreateMeetup = true }) {
+                            HStack(spacing: 6) {
+                                Image(systemName: "plus")
+                                Text("Create")
+                            }
+                            .font(.body)
+                            .fontWeight(.semibold)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 10)
+                            .background(AppColors.accent)
+                            .foregroundStyle(.white)
+                            .cornerRadius(8)
+                        }
+                    }
+                    .padding(.horizontal, 20)
+
+                    // Groups or empty state
+                    if groupsViewModel.availableGroups.isEmpty {
+                        VStack(spacing: 8) {
+                            Image(systemName: "calendar.badge.exclamationmark")
+                                .font(.system(size: 24))
+                                .foregroundStyle(AppColors.secondaryText)
+                            Text("No meetups for this date")
+                                .font(.caption)
+                                .foregroundStyle(AppColors.secondaryText)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 24)
+                    } else {
+                        VStack(spacing: 12) {
+                            ForEach(groupsViewModel.availableGroups) { group in
+                                GroupRowView(
+                                    group: group,
+                                    hasJoined: groupsViewModel.hasJoinedGroup(group),
+                                    onJoinTapped: { withAnimation { pendingConfirmation = .join(group) } },
+                                    onLeaveTapped: { withAnimation { pendingConfirmation = .leave(group) } },
+                                    onCardTapped: { path.append(.detail(group.id)) }
+                                )
+                            }
+                        }
+                        .padding(.horizontal, 20)
+                    }
+                }
+                .padding(.top, 8)
+                .padding(.bottom, 32)
+            }
+            .padding(.top, 12)
+        }
+        .navigationBarHidden(true)
+        .onAppear {
+            groupsViewModel.refreshAvailableGroups()
         }
     }
 }
@@ -391,8 +420,7 @@ struct FilterMenuView: View {
 // MARK: - Main map
 
 struct MainMapView: View {
-    var onOpenChat: (UUID) -> Void = { _ in }
-
+    // onOpenChat removed — chat navigation is owned by ActivityGroupsView
     @StateObject private var viewModel = ExploreViewModel()
 
     @State private var selectedPlace: PlaceAnnotation? = nil
@@ -478,10 +506,7 @@ struct MainMapView: View {
             Task { await viewModel.loadPlaces(filter: newValue) }
         }
         .sheet(item: $selectedPlace) { place in
-            PlaceDetailSheet(
-                place: place,
-                onOpenChat: openChatFromPlaceSheet
-            )
+            PlaceDetailSheet(place: place)
                 .presentationDetents([.medium, .large])
                 .presentationDragIndicator(.hidden)
                 .presentationCornerRadius(24)
@@ -493,17 +518,15 @@ struct MainMapView: View {
 
     private var headerOverlay: some View {
         HStack(alignment: .center) {
-            HStack(spacing: 0) {
-                VStack(alignment: .leading) {
-                    Text("You're in ")
-                        .font(.title)
-                        .fontWeight(.semibold)
-                        .foregroundStyle(AppColors.primaryText)
-                    Text(viewModel.locationName)
-                        .font(.title)
-                        .fontWeight(.semibold)
-                        .foregroundStyle(AppColors.accent)
-                }
+            VStack(alignment: .leading) {
+                Text("You're in ")
+                    .font(.title)
+                    .fontWeight(.semibold)
+                    .foregroundStyle(AppColors.primaryText)
+                Text(viewModel.locationName)
+                    .font(.title)
+                    .fontWeight(.semibold)
+                    .foregroundStyle(AppColors.accent)
             }
 
             Spacer()
@@ -597,14 +620,6 @@ struct MainMapView: View {
                     .font(.system(size: 17, weight: .medium))
                     .foregroundStyle(AppColors.accent)
             }
-        }
-    }
-
-    private func openChatFromPlaceSheet(_ groupID: UUID) {
-        selectedPlace = nil
-
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-            onOpenChat(groupID)
         }
     }
 }
