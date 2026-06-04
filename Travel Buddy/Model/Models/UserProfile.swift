@@ -1,20 +1,68 @@
 import Foundation
 
+struct GalleryPhoto: Identifiable, Hashable {
+    let id: UUID
+    var imageData: Data
+
+    init(id: UUID = UUID(), imageData: Data) {
+        self.id = id
+        self.imageData = imageData
+    }
+}
+
 struct UserProfile: Identifiable {
     let id = UUID()
-    let name: String
+
+    var name: String
+    var interests: [String]
+    var languages: [String]
+    var profileImageName: String
+    var aboutMe: String
+    var instagramHandle: String?
+    var twitterHandle: String?
+    var profileImageData: Data?
+    var gallery: [GalleryPhoto]
+
     let age: Int
-    let interests: [String]
-    let languages: [String]
     let country: String
-    let profileImageName: String
     let languageFlag: String
     let isFavorite: Bool
     let bio: String
-    let aboutMe: String
     let countryCode: String
-    let instagramHandle: String?
-    let twitterHandle: String?
+
+    init(
+        name: String,
+        age: Int,
+        interests: [String],
+        languages: [String],
+        country: String,
+        profileImageName: String,
+        languageFlag: String,
+        isFavorite: Bool,
+        bio: String,
+        aboutMe: String,
+        countryCode: String,
+        instagramHandle: String?,
+        twitterHandle: String?,
+        profileImageData: Data? = nil,
+        gallery: [GalleryPhoto] = []
+    ) {
+        self.name = name
+        self.age = age
+        self.interests = interests
+        self.languages = languages
+        self.country = country
+        self.profileImageName = profileImageName
+        self.languageFlag = languageFlag
+        self.isFavorite = isFavorite
+        self.bio = bio
+        self.aboutMe = aboutMe
+        self.countryCode = countryCode
+        self.instagramHandle = instagramHandle
+        self.twitterHandle = twitterHandle
+        self.profileImageData = profileImageData
+        self.gallery = gallery
+    }
 }
 
 extension UserProfile {
@@ -59,6 +107,12 @@ enum CurrentUserProfileStore {
         static let interests = "profileInterests"
         static let languages = "profileLanguages"
         static let memberSince = "profileMemberSince"
+        // Added for in-app profile editing.
+        static let aboutMe = "profileAboutMe"
+        static let instagram = "profileInstagramHandle"
+        static let twitter = "profileTwitterHandle"
+        static let profileImage = "profileImageData"
+        static let gallery = "profileGalleryData"
     }
 
     static func currentProfile() -> UserProfile {
@@ -75,6 +129,14 @@ enum CurrentUserProfileStore {
             fallback: defaultLanguages
         )
 
+        let savedAbout = clean(defaults.string(forKey: Keys.aboutMe))
+        let about = savedAbout ?? aboutText(interests: interests, languages: languages)
+        let instagram = clean(defaults.string(forKey: Keys.instagram))
+        let twitter = clean(defaults.string(forKey: Keys.twitter))
+        let profileImageData = defaults.data(forKey: Keys.profileImage)
+        let gallery = (defaults.array(forKey: Keys.gallery) as? [Data] ?? [])
+            .map { GalleryPhoto(imageData: $0) }
+
         return UserProfile(
             name: name,
             age: age > 0 ? age : 24,
@@ -85,11 +147,37 @@ enum CurrentUserProfileStore {
             languageFlag: CountryMetadata.flag(for: country),
             isFavorite: false,
             bio: "\(country) origin • \(languages.joined(separator: ", "))",
-            aboutMe: aboutText(interests: interests, languages: languages),
+            aboutMe: about,
             countryCode: CountryMetadata.code(for: country),
-            instagramHandle: nil,
-            twitterHandle: nil
+            instagramHandle: instagram,
+            twitterHandle: twitter,
+            profileImageData: profileImageData,
+            gallery: gallery
         )
+    }
+
+    static func saveEditableProfile(_ profile: UserProfile) {
+        let defaults = UserDefaults.standard
+        defaults.set(clean(profile.name) ?? "You", forKey: Keys.name)
+        defaults.set(encodedArray(cleanedList(profile.interests)), forKey: Keys.interests)
+        defaults.set(encodedArray(cleanedList(profile.languages)), forKey: Keys.languages)
+        defaults.set(clean(profile.aboutMe), forKey: Keys.aboutMe)
+        setOrRemove(clean(profile.instagramHandle), forKey: Keys.instagram, in: defaults)
+        setOrRemove(clean(profile.twitterHandle), forKey: Keys.twitter, in: defaults)
+
+        if let imageData = profile.profileImageData {
+            defaults.set(imageData, forKey: Keys.profileImage)
+        } else {
+            defaults.removeObject(forKey: Keys.profileImage)
+        }
+
+        defaults.set(profile.gallery.map { $0.imageData }, forKey: Keys.gallery)
+        ensureMemberSince()
+    }
+
+    private static func setOrRemove(_ value: String?, forKey key: String, in defaults: UserDefaults) {
+        if let value { defaults.set(value, forKey: key) }
+        else { defaults.removeObject(forKey: key) }
     }
 
     static func saveOnboardingProfile(
@@ -506,3 +594,4 @@ extension UserProfile {
         )
     }
 }
+
