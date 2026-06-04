@@ -21,6 +21,8 @@ struct ActivityGroupsView: View {
     // Confirmation popup — lifted here so it overlays the full screen, not just one card
     enum PendingConfirmation { case join(ActivityGroup), leave(ActivityGroup) }
     @State private var pendingConfirmation: PendingConfirmation?
+    // Cache groups by ID so navigationDestination always resolves even after date filter changes
+    @State private var groupCache: [UUID: ActivityGroup] = [:]
 
     // Convenience init for standalone (tab bar) usage
     init(place: PlaceAnnotation? = nil) {
@@ -55,12 +57,18 @@ struct ActivityGroupsView: View {
             .navigationDestination(for: GroupRoute.self) { route in
                 switch route {
                 case .detail(let groupID):
-                    if let group = viewModel.availableGroups.first(where: { $0.id == groupID }) {
+                    // Use MeetupStore directly — always has all groups regardless of date filter
+                    if let group = MeetupStore.shared.group(with: groupID) {
                         GroupDetailView(
                             group: group,
                             hasJoined: viewModel.hasJoinedGroup(group),
                             pendingConfirmation: $pendingConfirmation,
                             openChat: { path.append(.chat(group.id)) }
+                        )
+                    } else {
+                        ContentUnavailableView(
+                            "Meetup not found",
+                            systemImage: "calendar.badge.exclamationmark"
                         )
                     }
                 case .chat(let groupID):
@@ -217,7 +225,9 @@ struct ActivityGroupsView: View {
                         hasJoined: viewModel.hasJoinedGroup(group),
                         onJoinTapped: { withAnimation { pendingConfirmation = .join(group) } },
                         onLeaveTapped: { withAnimation { pendingConfirmation = .leave(group) } },
-                        onCardTapped: { path.append(.detail(group.id)) }
+                        onCardTapped: {
+                            path.append(.detail(group.id))
+                        }
                     )
                 }
             }
@@ -336,8 +346,12 @@ struct GroupRowView: View {
     }
 
     private var slots: [Slot] {
-        (0..<group.maxCapacity).map { i in
-            i < group.members.count ? .member(group.members[i]) : .available(i)
+        let capacity = max(group.maxCapacity, group.members.count)
+
+        return (0..<capacity).map { i in
+            i < group.members.count
+                ? .member(group.members[i])
+                : .available(i)
         }
     }
 
