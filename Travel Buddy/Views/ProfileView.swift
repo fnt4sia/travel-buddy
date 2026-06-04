@@ -48,15 +48,15 @@ struct ProfileView: View {
 
     private var headerControls: some View {
         HStack {
-            Button(action: viewModel.backTapped) {
-                Image(systemName: "chevron.left")
-                    .font(.system(size: 24, weight: .semibold))
-                    .foregroundStyle(.black.opacity(0.72))
-                    .frame(width: ProfileMetrics.Header.backButtonSize,
-                           height: ProfileMetrics.Header.backButtonSize)
-                    .background(.white.opacity(0.7), in: Circle())
-                    .overlay { Circle().stroke(.white, lineWidth: 1) }
-            }
+//            Button(action: viewModel.backTapped) {
+//                Image(systemName: "chevron.left")
+//                    .font(.system(size: 24, weight: .semibold))
+//                    .foregroundStyle(.black.opacity(0.72))
+//                    .frame(width: ProfileMetrics.Header.backButtonSize,
+//                           height: ProfileMetrics.Header.backButtonSize)
+//                    .background(.white.opacity(0.7), in: Circle())
+//                    .overlay { Circle().stroke(.white, lineWidth: 1) }
+//            }
 
             Spacer()
 
