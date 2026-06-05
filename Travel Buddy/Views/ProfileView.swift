@@ -29,6 +29,9 @@ struct ProfileView: View {
         }
         .background(AppColors.background.ignoresSafeArea())
         .sheet(item: $viewModel.editTarget) { editorSheet(for: $0) }
+        .task {
+            await meetupStore.loadJoinedGroups()
+        }
     }
     private var header: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -44,6 +47,7 @@ struct ProfileView: View {
                 Spacer()
             }
             identityPanel
+            profileStats
         }
     }
 
@@ -84,8 +88,8 @@ struct ProfileView: View {
             }
 
             VStack(alignment: .leading, spacing: 8) {
-                HStack(alignment: .firstTextBaseline, spacing: 8) {
-                    Text(viewModel.profile.name)
+                HStack(alignment: .center, spacing: 8) {
+                    Text(displayUsername)
                         .font(.system(size: 30, weight: .bold))
                         .foregroundStyle(.white)
                         .lineLimit(2)
@@ -95,13 +99,13 @@ struct ProfileView: View {
                         .font(.system(size: 15, weight: .bold))
                         .foregroundStyle(AppColors.brandPrimary)
                         .padding(.horizontal, 9)
-                        .padding(.vertical, 5)
+                        .padding(.vertical, 6)
                         .background(.white, in: Capsule())
                 }
 
-                Text(identitySubtitle)
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundStyle(.white.opacity(0.86))
+                Text(viewModel.profile.realName)
+                    .font(.system(size: 16, weight: .medium))
+                    .foregroundStyle(.white.opacity(0.85))
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
@@ -124,6 +128,11 @@ struct ProfileView: View {
 
     private var identitySubtitle: String {
         "From \(viewModel.profile.country). Speaks \(languageSummary)."
+    }
+
+    private var displayUsername: String {
+        let username = viewModel.profile.name.trimmingCharacters(in: .whitespacesAndNewlines)
+        return username.hasPrefix("@") ? username : "@\(username)"
     }
 
     private var languageSummary: String {
@@ -150,6 +159,21 @@ struct ProfileView: View {
             RoundedRectangle(cornerRadius: 16, style: .continuous)
                 .stroke(.white.opacity(0.20), lineWidth: 1)
         )
+    }
+
+    private var profileStats: some View {
+        HStack(spacing: 10) {
+            ProfileStatTile(
+                systemImage: "calendar.badge.plus",
+                value: "\(meetupStore.createdGroupsCount)",
+                title: "Events created"
+            )
+            ProfileStatTile(
+                systemImage: "sparkles",
+                value: CurrentUserProfileStore.memberSinceText,
+                title: "Member since"
+            )
+        }
     }
 
     private var aboutSection: some View {
@@ -248,9 +272,10 @@ struct ProfileView: View {
             )
         case .identity:
             IdentityEditorSheet(
-                initialName: viewModel.profile.name,
+                initialUsername: viewModel.profile.name,
+                initialRealName: viewModel.profile.realName,
                 initialCountry: viewModel.profile.country,
-                onSave: viewModel.updateNameAndCountry
+                onSave: viewModel.updateIdentity
             )
         case .name:
             NameEditorSheet(initialName: viewModel.profile.name, onSave: viewModel.updateName)
@@ -512,43 +537,64 @@ private struct MultiSelectChipPicker: View {
 }
 
 private struct IdentityEditorSheet: View {
-    let initialName: String
+    let initialUsername: String
+    let initialRealName: String
     let initialCountry: String
-    let onSave: (String, String) -> Void
+    let onSave: (String, String, String) -> Void
     @Environment(\.dismiss) private var dismiss
-    @State private var name: String
+    @State private var username: String
+    @State private var realName: String
     @State private var country: String
     @FocusState private var focusedName: Bool
 
-    init(initialName: String, initialCountry: String, onSave: @escaping (String, String) -> Void) {
-        self.initialName = initialName
+    init(
+        initialUsername: String,
+        initialRealName: String,
+        initialCountry: String,
+        onSave: @escaping (String, String, String) -> Void
+    ) {
+        self.initialUsername = initialUsername
+        self.initialRealName = initialRealName
         self.initialCountry = initialCountry
         self.onSave = onSave
-        _name = State(initialValue: initialName)
+        _username = State(initialValue: initialUsername)
+        _realName = State(initialValue: initialRealName)
         _country = State(initialValue: initialCountry)
     }
 
-    private var trimmedName: String { name.trimmingCharacters(in: .whitespacesAndNewlines) }
+    private var normalizedUsername: String {
+        SupabaseService.normalizedUsername(username) ?? ""
+    }
+    private var trimmedRealName: String { realName.trimmingCharacters(in: .whitespacesAndNewlines) }
     private var trimmedCountry: String { country.trimmingCharacters(in: .whitespacesAndNewlines) }
     private var canSave: Bool {
-        !trimmedName.isEmpty && !trimmedCountry.isEmpty &&
-            (trimmedName != initialName || trimmedCountry != initialCountry)
+        !normalizedUsername.isEmpty && !trimmedRealName.isEmpty && !trimmedCountry.isEmpty &&
+            (normalizedUsername != initialUsername || trimmedRealName != initialRealName || trimmedCountry != initialCountry)
     }
 
     var body: some View {
         EditSheetScaffold(title: "Profile", canSave: canSave,
                           onCancel: { dismiss() },
-                          onSave: { onSave(trimmedName, trimmedCountry); dismiss() }) {
+                          onSave: { onSave(normalizedUsername, trimmedRealName, trimmedCountry); dismiss() }) {
             VStack(alignment: .leading, spacing: 18) {
-                EditorFieldLabel(text: "Display name")
-                TextField("Your name", text: $name)
+                EditorFieldLabel(text: "Username")
+                TextField("gloobmate", text: $username)
+                    .font(.system(size: 16, weight: .medium))
+                    .foregroundStyle(AppColors.primaryText)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                    .submitLabel(.done)
+                    .focused($focusedName)
+                    .onSubmit { if canSave { onSave(normalizedUsername, trimmedRealName, trimmedCountry); dismiss() } }
+                    .profileFieldBackground()
+
+                EditorFieldLabel(text: "Real name")
+                TextField("Your full name", text: $realName)
                     .font(.system(size: 16, weight: .medium))
                     .foregroundStyle(AppColors.primaryText)
                     .textInputAutocapitalization(.words)
                     .autocorrectionDisabled()
                     .submitLabel(.done)
-                    .focused($focusedName)
-                    .onSubmit { if canSave { onSave(trimmedName, trimmedCountry); dismiss() } }
                     .profileFieldBackground()
 
                 EditorFieldLabel(text: "Country origin")
@@ -560,7 +606,7 @@ private struct IdentityEditorSheet: View {
                     .submitLabel(.done)
                     .profileFieldBackground()
 
-                Text("This is how other travelers will see your nationality and flag.")
+                Text("Your username appears in rooms. Your real name appears on your profile.")
                     .font(.system(size: 13, weight: .medium))
                     .foregroundStyle(AppColors.secondaryText)
             }
@@ -592,17 +638,17 @@ private struct NameEditorSheet: View {
                           onCancel: { dismiss() },
                           onSave: { onSave(trimmed); dismiss() }) {
             VStack(alignment: .leading, spacing: 10) {
-                EditorFieldLabel(text: "Display name")
-                TextField("Your name", text: $name)
+                EditorFieldLabel(text: "Username")
+                TextField("gloobmate", text: $name)
                     .font(.system(size: 16, weight: .medium))
                     .foregroundStyle(AppColors.primaryText)
-                    .textInputAutocapitalization(.words)
+                    .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
                     .submitLabel(.done)
                     .focused($focused)
                     .onSubmit { if canSave { onSave(trimmed); dismiss() } }
                     .profileFieldBackground()
-                Text("This is how other travelers will see you.")
+                Text("This is how other travelers will see you in rooms and chat.")
                     .font(.system(size: 13, weight: .medium))
                     .foregroundStyle(AppColors.secondaryText)
             }

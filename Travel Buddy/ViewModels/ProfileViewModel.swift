@@ -41,7 +41,7 @@ final class ProfileViewModel: ObservableObject {
     }
 
     func updateName(_ value: String) {
-        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmed = SupabaseService.normalizedUsername(value) ?? ""
         guard !trimmed.isEmpty else { return }
         profile.name = trimmed
         persist()
@@ -78,13 +78,15 @@ final class ProfileViewModel: ObservableObject {
         persist()
     }
     
-    func updateNameAndCountry(_ name: String, country: String) {
-            let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
-            let trimmedCountry = country.trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !trimmedName.isEmpty, !trimmedCountry.isEmpty else { return }
-            profile.name = trimmedName
-            profile.updateCountry(to: trimmedCountry)
-            persist()
+    func updateIdentity(username: String, realName: String, country: String) {
+        let trimmedUsername = SupabaseService.normalizedUsername(username) ?? ""
+        let trimmedRealName = realName.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedCountry = country.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedUsername.isEmpty, !trimmedRealName.isEmpty, !trimmedCountry.isEmpty else { return }
+        profile.name = trimmedUsername
+        profile.realName = trimmedRealName
+        profile.updateCountry(to: trimmedCountry)
+        persist()
     }
 
     static func normalizedHandle(_ raw: String?) -> String? {
@@ -98,5 +100,9 @@ final class ProfileViewModel: ObservableObject {
     private func persist() {
         guard isEditable else { return }
         CurrentUserProfileStore.saveEditableProfile(profile)
+
+        Task { @MainActor in
+            try? await SupabaseService.shared.upsertCurrentProfile()
+        }
     }
 }

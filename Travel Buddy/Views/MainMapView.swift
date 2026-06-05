@@ -82,10 +82,10 @@ struct Triangle: Shape {
 
 struct PlaceDetailSheet: View {
     let place: PlaceAnnotation
-    var onOpenChat: (UUID) -> Void = { _ in }
+    var onOpenChat: (UUID) -> Void
 
     @Environment(\.dismiss) private var dismiss
-    @StateObject private var groupsViewModel = GroupsViewModel()
+    @StateObject private var groupsViewModel: GroupsViewModel
     @State private var showDatePicker = false
     @State private var showCreateMeetup = false
 
@@ -98,8 +98,18 @@ struct PlaceDetailSheet: View {
     @State private var path: [PlaceRoute] = []
 
     // Confirmation popup — full-screen so it overlays the whole sheet
-    enum PendingConfirmation { case join(ActivityGroup), leave(ActivityGroup) }
-    @State private var pendingConfirmation: PendingConfirmation?
+    @State private var pendingConfirmation: GroupPendingConfirmation?
+
+    init(
+        place: PlaceAnnotation,
+        onOpenChat: @escaping (UUID) -> Void = { _ in }
+    ) {
+        self.place = place
+        self.onOpenChat = onOpenChat
+        _groupsViewModel = StateObject(
+            wrappedValue: GroupsViewModel(place: place)
+        )
+    }
 
     var body: some View {
         // Drag indicator sits outside the NavigationStack so it
@@ -129,7 +139,7 @@ struct PlaceDetailSheet: View {
                                     GroupDetailView(
                                         group: group,
                                         hasJoined: groupsViewModel.hasJoinedGroup(group),
-                                        pendingConfirmation: .constant(nil),
+                                        pendingConfirmation: $pendingConfirmation,
                                         openChat: {
                                             openMessageRoom(groupID)
                                         }
@@ -172,11 +182,15 @@ struct PlaceDetailSheet: View {
                         withAnimation { pendingConfirmation = nil }
                         switch captured {
                         case .join(let group):
-                            if let joined = groupsViewModel.joinGroup(group) {
-                                openMessageRoom(joined.id)
+                            Task {
+                                if let joined = await groupsViewModel.joinGroup(group) {
+                                    openMessageRoom(joined.id)
+                                }
                             }
                         case .leave(let group):
-                            groupsViewModel.leaveGroup(group)
+                            Task {
+                                await groupsViewModel.leaveGroup(group)
+                            }
                         }
                     }
                 )
@@ -198,15 +212,17 @@ struct PlaceDetailSheet: View {
                 defaultAddress: place.address,
                 defaultDescription: "Explore \(place.name), meet new people, and keep the plan flexible for the group.",
                 onCreate: { name, description, address, date, meetingTime, maxCapacity in
-                    if let created = groupsViewModel.createGroup(
-                        name: name,
-                        description: description,
-                        address: address,
-                        date: date,
-                        meetingTime: meetingTime,
-                        maxCapacity: maxCapacity
-                    ) {
-                        openMessageRoom(created.id)
+                    Task {
+                        if let created = await groupsViewModel.createGroup(
+                            name: name,
+                            description: description,
+                            address: address,
+                            date: date,
+                            meetingTime: meetingTime,
+                            maxCapacity: maxCapacity
+                        ) {
+                            openMessageRoom(created.id)
+                        }
                     }
                 }
             )

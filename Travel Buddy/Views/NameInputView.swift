@@ -47,7 +47,12 @@ struct NameInputView: View {
 
                     Button(action: {
                         guard !firstName.trimmingCharacters(in: .whitespaces).isEmpty else { return }
-                        UserDefaults.standard.set(firstName, forKey: "userName")
+                        let username = CurrentUserProfileStore.usernameCandidate(from: firstName) ?? "traveler"
+                        CurrentUserProfileStore.saveAccountIdentity(
+                            username: username,
+                            realName: firstName,
+                            email: "\(username)@gloob.dev"
+                        )
                         navigateToLocation = true
                     }) {
                         Text("Let's go")

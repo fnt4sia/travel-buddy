@@ -1,5 +1,5 @@
-import Foundation
 import Combine
+import Foundation
 
 @MainActor
 struct MeetupConflict: Identifiable {
@@ -10,22 +10,22 @@ struct MeetupConflict: Identifiable {
 @MainActor
 final class MeetupStore: ObservableObject {
     static let shared = MeetupStore()
-    static let currentUserName = "You"
 
-    @Published private(set) var groups: [ActivityGroup]
+    static var currentUserName: String {
+        CurrentUserProfileStore.currentProfile().name
+    }
+
+    @Published private(set) var groups: [ActivityGroup] = []
     @Published private(set) var joinedGroupIDs: Set<UUID> = []
     @Published private(set) var createdGroupIDs: Set<UUID> = []
-    @Published private(set) var messagesByGroupID: [UUID: [ChatMessage]]
+    @Published private(set) var messagesByGroupID: [UUID: [ChatMessage]] = [:]
+    @Published private(set) var profilesByUserID: [UUID: UserProfile] = [:]
+    @Published private(set) var isLoading = false
+    @Published private(set) var errorMessage: String?
 
-    private init() {
-        let sampleGroups = Self.makeSampleGroups()
-        groups = sampleGroups
-        messagesByGroupID = Dictionary(
-            uniqueKeysWithValues: sampleGroups.map { group in
-                (group.id, Self.makeSeedMessages(for: group))
-            }
-        )
-    }
+    private let service = SupabaseMeetupService.shared
+
+    private init() {}
 
     var joinedGroups: [ActivityGroup] {
         groups
@@ -37,9 +37,12 @@ final class MeetupStore: ObservableObject {
         createdGroupIDs.count
     }
 
-    func groups(on date: Date) -> [ActivityGroup] {
+    func groups(on date: Date, placeID: String? = nil) -> [ActivityGroup] {
         groups
-            .filter { Calendar.current.isDate($0.date, inSameDayAs: date) }
+            .filter { group in
+                Calendar.current.isDate(group.date, inSameDayAs: date)
+                    && (placeID == nil || group.placeID == placeID)
+            }
             .sorted { $0.date < $1.date }
     }
 
@@ -56,81 +59,128 @@ final class MeetupStore: ObservableObject {
         messages(for: groupID).last
     }
 
-    @discardableResult
-    func join(_ group: ActivityGroup) -> ActivityGroup? {
-        guard let index = groups.firstIndex(where: { $0.id == group.id }) else {
-            return nil
-        }
-
-        if !joinedGroupIDs.contains(group.id) {
-            guard conflictingJoinedGroup(for: groups[index]) == nil else {
-                return nil
-            }
-
-            joinedGroupIDs.insert(group.id)
-
-            if !groups[index].members.contains(where: { $0.name == Self.currentUserName }),
-               !groups[index].isFull {
-                groups[index].members.append(
-                    GroupMember(name: Self.currentUserName, color: "teal")
-                )
-            }
-        }
-
-        if messagesByGroupID[group.id] == nil {
-            messagesByGroupID[group.id] = Self.makeSeedMessages(for: groups[index])
-        }
-
-        return groups[index]
+    func userProfile(with userID: UUID?) -> UserProfile? {
+        guard let userID else { return nil }
+        return profilesByUserID[userID]
     }
 
-    func leave(_ group: ActivityGroup) {
-        joinedGroupIDs.remove(group.id)
-
-        guard let index = groups.firstIndex(where: { $0.id == group.id }) else {
+    func loadAvailableGroups(on date: Date, place: PlaceAnnotation?) async {
+        guard service.isConfigured else {
+            errorMessage = "Supabase is not configured yet."
             return
         }
 
-        groups[index].members.removeAll { $0.name == Self.currentUserName }
+        isLoading = true
+        defer { isLoading = false }
+
+        do {
+            let result = try await service.fetchRooms(on: date, placeID: place?.id)
+            merge(result)
+            errorMessage = nil
+        } catch {
+            errorMessage = error.localizedDescription
+            print("Load available meetups failed: \(error.localizedDescription)")
+        }
+    }
+
+    func loadJoinedGroups() async {
+        guard service.isConfigured else {
+            errorMessage = "Supabase is not configured yet."
+            return
+        }
+
+        do {
+            guard let userID = try await SupabaseService.shared.ensureCurrentUser() else {
+                return
+            }
+
+            let joinedResult = try await service.fetchJoinedRooms(for: userID)
+            merge(joinedResult)
+            joinedGroupIDs = Set(joinedResult.groups.map(\.id))
+            createdGroupIDs = try await service.fetchCreatedRoomIDs(for: userID)
+
+            for groupID in joinedGroupIDs {
+                await loadMessages(for: groupID)
+            }
+
+            errorMessage = nil
+        } catch {
+            errorMessage = error.localizedDescription
+            print("Load joined meetups failed: \(error.localizedDescription)")
+        }
+    }
+
+    @discardableResult
+    func join(_ group: ActivityGroup) async -> ActivityGroup? {
+        if joinedGroupIDs.contains(group.id) {
+            return self.group(with: group.id) ?? group
+        }
+
+        do {
+            try await service.joinRoom(group.id)
+            await loadJoinedGroups()
+            await loadAvailableGroups(on: group.date, place: nil)
+            return self.group(with: group.id) ?? group
+        } catch {
+            errorMessage = error.localizedDescription
+            print("Join meetup failed: \(error.localizedDescription)")
+            return nil
+        }
+    }
+
+    func leave(_ group: ActivityGroup) async {
+        do {
+            try await service.leaveRoom(group.id)
+            joinedGroupIDs.remove(group.id)
+            messagesByGroupID[group.id] = []
+            await loadJoinedGroups()
+            await loadAvailableGroups(on: group.date, place: nil)
+        } catch {
+            errorMessage = error.localizedDescription
+            print("Leave meetup failed: \(error.localizedDescription)")
+        }
     }
 
     @discardableResult
     func createGroup(
+        place: PlaceAnnotation?,
         name: String,
         description: String,
         address: String,
         date: Date,
         meetingTime: String,
         maxCapacity: Int
-    ) -> ActivityGroup? {
-        let group = ActivityGroup(
-            name: name,
-            description: description,
-            address: address,
-            date: date,
-            maxCapacity: maxCapacity,
-            members: [
-                GroupMember(name: Self.currentUserName, color: "teal")
-            ],
-            meetingTime: meetingTime
-        )
+    ) async -> ActivityGroup? {
+        do {
+            guard let createdGroup = try await service.createRoom(
+                place: place,
+                name: name,
+                description: description,
+                address: address,
+                date: date,
+                meetingTime: meetingTime,
+                maxCapacity: maxCapacity
+            ) else {
+                return nil
+            }
 
-        guard conflictingJoinedGroup(for: group) == nil else {
+            merge(
+                SupabaseMeetupFetchResult(
+                    groups: [createdGroup],
+                    profiles: [:]
+                )
+            )
+            joinedGroupIDs.insert(createdGroup.id)
+            createdGroupIDs.insert(createdGroup.id)
+            await loadJoinedGroups()
+            await loadAvailableGroups(on: date, place: place)
+            await loadMessages(for: createdGroup.id)
+            return group(with: createdGroup.id) ?? createdGroup
+        } catch {
+            errorMessage = error.localizedDescription
+            print("Create meetup failed: \(error.localizedDescription)")
             return nil
         }
-
-        groups.insert(group, at: 0)
-        joinedGroupIDs.insert(group.id)
-        createdGroupIDs.insert(group.id)
-        messagesByGroupID[group.id] = [
-            ChatMessage(
-                groupID: group.id,
-                senderName: Self.currentUserName,
-                body: "Hi everyone, I created this meetup: \(group.description)"
-            )
-        ]
-
-        return group
     }
 
     func conflictingJoinedGroup(for candidate: ActivityGroup) -> ActivityGroup? {
@@ -140,118 +190,56 @@ final class MeetupStore: ObservableObject {
                     joinedGroup.date,
                     inSameDayAs: candidate.date
                 )
-                && Self.normalizedPlace(joinedGroup.address)
-                    == Self.normalizedPlace(candidate.address)
+                && normalizedPlaceKey(for: joinedGroup)
+                    == normalizedPlaceKey(for: candidate)
         }
     }
 
-    func sendMessage(groupID: UUID, body: String) {
+    func loadMessages(for groupID: UUID) async {
+        guard service.isConfigured else { return }
+
+        do {
+            let result = try await service.fetchMessages(for: groupID)
+            messagesByGroupID[groupID] = result.messages
+            profilesByUserID.merge(result.profiles) { _, new in new }
+            errorMessage = nil
+        } catch {
+            errorMessage = error.localizedDescription
+            print("Load messages failed: \(error.localizedDescription)")
+        }
+    }
+
+    func sendMessage(groupID: UUID, body: String) async {
         let trimmedBody = body.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedBody.isEmpty else { return }
 
-        messagesByGroupID[groupID, default: []].append(
-            ChatMessage(
-                groupID: groupID,
-                senderName: Self.currentUserName,
-                body: trimmedBody
-            )
-        )
+        do {
+            try await service.sendMessage(groupID: groupID, body: trimmedBody)
+            await loadMessages(for: groupID)
+        } catch {
+            errorMessage = error.localizedDescription
+            print("Send message failed: \(error.localizedDescription)")
+        }
     }
 
-    private static func makeSampleGroups() -> [ActivityGroup] {
-        [
-            ActivityGroup(
-                name: "Morning Adventure",
-                description: "Start with a short walk, take photos around the forest area, then grab a casual brunch together.",
-                address: "Jl. Monkey Forest, Ubud, Kecamatan Ubud",
-                date: Calendar.current.date(byAdding: .day, value: 0, to: Date()) ?? Date(),
-                maxCapacity: 4,
-                members: [
-                    GroupMember(name: "Agustinus Juan", color: "blue"),
-                    GroupMember(name: "Rani", color: "green"),
-                ],
-                meetingTime: "09:00 - 15:00 GMT+8"
-            ),
-            ActivityGroup(
-                name: "Sunset Explorer",
-                description: "Meet before golden hour, walk through the nearby area, and find a good sunset spot together.",
-                address: "Jl. Raya Ubud No.35, Ubud, Kecamatan Ubud",
-                date: Calendar.current.date(byAdding: .day, value: 0, to: Date()) ?? Date(),
-                maxCapacity: 7,
-                members: [
-                    GroupMember(name: "Jody", color: "purple"),
-                    GroupMember(name: "Balqis", color: "orange"),
-                ],
-                meetingTime: "16:00 - 19:00 GMT+8"
-            ),
-            ActivityGroup(
-                name: "Full Group Experience",
-                description: "A full small-group day plan with sightseeing, local snacks, and a shared photo stop.",
-                address: "Kelusa, Payangan, Kabupaten Gianyar",
-                date: Calendar.current.date(byAdding: .day, value: 0, to: Date()) ?? Date(),
-                maxCapacity: 4,
-                members: [
-                    GroupMember(name: "Dodo", color: "red"),
-                    GroupMember(name: "Eka", color: "yellow"),
-                    GroupMember(name: "Fira", color: "cyan"),
-                    GroupMember(name: "Mira", color: "purple"),
-                ],
-                meetingTime: "08:00 - 14:00 GMT+8"
-            ),
-            ActivityGroup(
-                name: "Afternoon Exploration",
-                description: "Easy afternoon route for trying nearby food, checking hidden corners, and chatting along the way.",
-                address: "Jl. Kajeng, Ubud, Kecamatan Ubud",
-                date: Calendar.current.date(byAdding: .day, value: 1, to: Date()) ?? Date(),
-                maxCapacity: 4,
-                members: [
-                    GroupMember(name: "John", color: "purple"),
-                    GroupMember(name: "Maria", color: "blue"),
-                ],
-                meetingTime: "14:00 - 17:00 GMT+8"
-            ),
-            ActivityGroup(
-                name: "Nature Lovers Walk",
-                description: "Morning walk for people who want something calm: fresh air, photos, and a coffee stop after.",
-                address: "Jl. Raya Andong, Ubud, Kecamatan Ubud",
-                date: Calendar.current.date(byAdding: .day, value: 1, to: Date()) ?? Date(),
-                maxCapacity: 5,
-                members: [
-                    GroupMember(name: "Budi", color: "green"),
-                    GroupMember(name: "Siti", color: "orange"),
-                    GroupMember(name: "Ahmad", color: "red"),
-                ],
-                meetingTime: "06:00 - 10:00 GMT+8"
-            ),
-        ]
+    private func merge(_ result: SupabaseMeetupFetchResult) {
+        var nextGroups = Dictionary(uniqueKeysWithValues: groups.map { ($0.id, $0) })
+        for group in result.groups {
+            nextGroups[group.id] = group
+        }
+        groups = Array(nextGroups.values).sorted { $0.date < $1.date }
+        profilesByUserID.merge(result.profiles) { _, new in new }
     }
 
-    private static func normalizedPlace(_ value: String) -> String {
-        value
+    private func normalizedPlaceKey(for group: ActivityGroup) -> String {
+        if let placeID = group.placeID, !placeID.isEmpty {
+            return placeID
+        }
+
+        return group.address
             .trimmingCharacters(in: .whitespacesAndNewlines)
             .lowercased()
             .replacingOccurrences(of: "\\s+", with: " ", options: .regularExpression)
-    }
-
-    private static func makeSeedMessages(for group: ActivityGroup) -> [ChatMessage] {
-        guard let firstMember = group.members.first else {
-            return []
-        }
-
-        return [
-            ChatMessage(
-                groupID: group.id,
-                senderName: firstMember.name,
-                body: "Hi, I am joining \(group.name). Nice to meet you all!",
-                sentAt: Calendar.current.date(byAdding: .minute, value: -26, to: Date()) ?? Date()
-            ),
-            ChatMessage(
-                groupID: group.id,
-                senderName: group.members.dropFirst().first?.name ?? firstMember.name,
-                body: "Plan sounds good. Let's meet near the entrance before we start.",
-                sentAt: Calendar.current.date(byAdding: .minute, value: -12, to: Date()) ?? Date()
-            ),
-        ]
     }
 }
 
@@ -263,31 +251,53 @@ final class GroupsViewModel: ObservableObject {
     @Published private(set) var availableGroups: [ActivityGroup] = []
     @Published private(set) var userJoinedGroups: [UUID] = []
     @Published var meetupConflict: MeetupConflict?
+    @Published private(set) var isLoading = false
+    @Published private(set) var errorMessage: String?
 
+    private let place: PlaceAnnotation?
     private let store: MeetupStore
     private var cancellables: Set<AnyCancellable> = []
+    private var refreshTask: Task<Void, Never>?
 
-    init() {
+    init(place: PlaceAnnotation? = nil) {
+        self.place = place
         self.store = MeetupStore.shared
 
         self.store.$groups
             .sink { [weak self] _ in
-                self?.refreshAvailableGroups()
+                self?.applyCurrentFilters()
             }
             .store(in: &cancellables)
 
         self.store.$joinedGroupIDs
             .sink { [weak self] joinedGroupIDs in
                 self?.userJoinedGroups = Array(joinedGroupIDs)
+                self?.applyCurrentFilters()
             }
             .store(in: &cancellables)
 
-        refreshAvailableGroups()
+        self.store.$isLoading
+            .assign(to: &$isLoading)
+
+        self.store.$errorMessage
+            .assign(to: &$errorMessage)
+
+        applyCurrentFilters()
         userJoinedGroups = Array(self.store.joinedGroupIDs)
     }
 
+    deinit {
+        refreshTask?.cancel()
+    }
+
     func refreshAvailableGroups() {
-        availableGroups = store.groups(on: selectedDate)
+        applyCurrentFilters()
+        refreshTask?.cancel()
+        refreshTask = Task { [weak self] in
+            guard let self else { return }
+            await store.loadAvailableGroups(on: selectedDate, place: place)
+            applyCurrentFilters()
+        }
     }
 
     func searchGroups(for date: Date) {
@@ -296,7 +306,7 @@ final class GroupsViewModel: ObservableObject {
     }
 
     @discardableResult
-    func joinGroup(_ group: ActivityGroup) -> ActivityGroup? {
+    func joinGroup(_ group: ActivityGroup) async -> ActivityGroup? {
         if let conflict = store.conflictingJoinedGroup(for: group) {
             meetupConflict = MeetupConflict(
                 message: "You already joined \(conflict.name) on this date at this place. Leave that meetup first before joining another one here."
@@ -304,15 +314,19 @@ final class GroupsViewModel: ObservableObject {
             return nil
         }
 
-        if let joinedGroup = store.join(group) {
-            refreshAvailableGroups()
-            return joinedGroup
+        guard let joinedGroup = await store.join(group) else {
+            if let message = store.errorMessage {
+                meetupConflict = MeetupConflict(message: message)
+            }
+            return nil
         }
-        return nil
+
+        refreshAvailableGroups()
+        return joinedGroup
     }
 
-    func leaveGroup(_ group: ActivityGroup) {
-        store.leave(group)
+    func leaveGroup(_ group: ActivityGroup) async {
+        await store.leave(group)
         refreshAvailableGroups()
     }
 
@@ -324,8 +338,9 @@ final class GroupsViewModel: ObservableObject {
         date: Date,
         meetingTime: String,
         maxCapacity: Int
-    ) -> ActivityGroup? {
+    ) async -> ActivityGroup? {
         let candidate = ActivityGroup(
+            placeID: place?.id,
             name: name,
             description: description,
             address: address,
@@ -342,7 +357,8 @@ final class GroupsViewModel: ObservableObject {
             return nil
         }
 
-        guard let createdGroup = store.createGroup(
+        guard let createdGroup = await store.createGroup(
+            place: place,
             name: name,
             description: description,
             address: address,
@@ -350,8 +366,12 @@ final class GroupsViewModel: ObservableObject {
             meetingTime: meetingTime,
             maxCapacity: maxCapacity
         ) else {
+            if let message = store.errorMessage {
+                meetupConflict = MeetupConflict(message: message)
+            }
             return nil
         }
+
         selectedDate = date
         refreshAvailableGroups()
         return createdGroup
@@ -359,5 +379,9 @@ final class GroupsViewModel: ObservableObject {
 
     func hasJoinedGroup(_ group: ActivityGroup) -> Bool {
         userJoinedGroups.contains(group.id)
+    }
+
+    private func applyCurrentFilters() {
+        availableGroups = store.groups(on: selectedDate, placeID: place?.id)
     }
 }

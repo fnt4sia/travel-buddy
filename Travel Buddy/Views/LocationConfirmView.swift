@@ -14,7 +14,7 @@ struct LocationConfirmView: View {
     var body: some View {
         VStack(spacing: 24) {
             Spacer()
-            Text("Hi, \(UserDefaults.standard.string(forKey: "userName") ?? "there").")
+            Text("Hi, \(CurrentUserProfileStore.currentProfile().name).")
                 .font(.largeTitle).bold()
             Text("Welcome to ")
                 .font(.largeTitle).bold()
