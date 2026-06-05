@@ -5,6 +5,11 @@
 
 import SwiftUI
 
+enum GroupPendingConfirmation {
+    case join(ActivityGroup)
+    case leave(ActivityGroup)
+}
+
 // MARK: - Activity Groups View
 // Single source of truth for the meetup flow.
 // Can be launched standalone (tab bar) or from a place (PlaceDetailSheet).
@@ -16,19 +21,18 @@ struct ActivityGroupsView: View {
     /// Prevents double-nesting NavigationStacks which crashes SwiftUI.
     let isEmbedded: Bool
 
-    @StateObject private var viewModel = GroupsViewModel()
+    @StateObject private var viewModel: GroupsViewModel
     @State private var showDatePicker = false
     @State private var showCreateMeetup = false
 
     enum GroupRoute: Hashable {
         case detail(UUID)
         case chat(UUID)
-        case profile(String)  // member name
+        case profile(UUID)
     }
     @State private var path: [GroupRoute] = []
 
-    enum PendingConfirmation { case join(ActivityGroup), leave(ActivityGroup) }
-    @State private var pendingConfirmation: PendingConfirmation?
+    @State private var pendingConfirmation: GroupPendingConfirmation?
 
     init(
         place: PlaceAnnotation? = nil,
@@ -38,6 +42,7 @@ struct ActivityGroupsView: View {
         self.place = place
         self.isEmbedded = isEmbedded
         self.onOpenChat = onOpenChat
+        _viewModel = StateObject(wrappedValue: GroupsViewModel(place: place))
     }
 
     var body: some View {
@@ -96,15 +101,17 @@ struct ActivityGroupsView: View {
                 defaultAddress: place?.address ?? "Selected place",
                 defaultDescription: place.map { "Explore \($0.name), meet new people, and keep the plan flexible for the group." } ?? "",
                 onCreate: { name, description, address, date, meetingTime, maxCapacity in
-                    if let created = viewModel.createGroup(
-                        name: name,
-                        description: description,
-                        address: address,
-                        date: date,
-                        meetingTime: meetingTime,
-                        maxCapacity: maxCapacity
-                    ) {
-                        openChat(created.id)
+                    Task {
+                        if let created = await viewModel.createGroup(
+                            name: name,
+                            description: description,
+                            address: address,
+                            date: date,
+                            meetingTime: meetingTime,
+                            maxCapacity: maxCapacity
+                        ) {
+                            openChat(created.id)
+                        }
                     }
                 }
             )
@@ -123,8 +130,10 @@ struct ActivityGroupsView: View {
     @ViewBuilder
     private func routeDestination(_ route: GroupRoute) -> some View {
         switch route {
-        case .profile(let memberName):
-            let vm = ProfileViewModel(profile: UserProfile.profile(for: memberName))
+        case .profile(let userID):
+            let profile = MeetupStore.shared.userProfile(with: userID)
+                ?? UserProfile.profile(for: "Traveler")
+            let vm = ProfileViewModel(profile: profile)
             ProfileView(viewModel: vm)
         case .detail(let groupID):
             if let group = MeetupStore.shared.group(with: groupID) {
@@ -133,7 +142,11 @@ struct ActivityGroupsView: View {
                     hasJoined: viewModel.hasJoinedGroup(group),
                     pendingConfirmation: $pendingConfirmation,
                     openChat: { openChat(group.id) },
-                    onMemberTapped: { path.append(.profile($0)) }
+                    onMemberTapped: { member in
+                        if let userID = member.userID {
+                            path.append(.profile(userID))
+                        }
+                    }
                 )
             } else {
                 ContentUnavailableView(
@@ -175,11 +188,15 @@ struct ActivityGroupsView: View {
                     withAnimation { pendingConfirmation = nil }
                     switch captured {
                     case .join(let group):
-                        if let joined = viewModel.joinGroup(group) {
-                            openChat(joined.id)
+                        Task {
+                            if let joined = await viewModel.joinGroup(group) {
+                                openChat(joined.id)
+                            }
                         }
                     case .leave(let group):
-                        viewModel.leaveGroup(group)
+                        Task {
+                            await viewModel.leaveGroup(group)
+                        }
                     }
                 }
             )
@@ -258,7 +275,11 @@ struct ActivityGroupsView: View {
                         onJoinTapped: { withAnimation { pendingConfirmation = .join(group) } },
                         onLeaveTapped: { withAnimation { pendingConfirmation = .leave(group) } },
                         onCardTapped: { path.append(.detail(group.id)) },
-                        onMemberTapped: { name in path.append(.profile(name)) }
+                        onMemberTapped: { member in
+                            if let userID = member.userID {
+                                path.append(.profile(userID))
+                            }
+                        }
                     )
                 }
             }
@@ -284,7 +305,7 @@ struct GroupRowView: View {
     let onJoinTapped: () -> Void
     let onLeaveTapped: () -> Void
     let onCardTapped: () -> Void
-    var onMemberTapped: ((String) -> Void)? = nil
+    var onMemberTapped: ((GroupMember) -> Void)? = nil
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -429,7 +450,7 @@ struct GroupRowView: View {
 
     private func memberAvatar(for member: GroupMember) -> some View {
         Button {
-            onMemberTapped?(member.name)
+            onMemberTapped?(member)
         } label: {
             Circle()
                 .fill(memberColor(for: member.color))
@@ -750,9 +771,9 @@ struct CreateMeetupSheet: View {
 struct GroupDetailView: View {
     let group: ActivityGroup
     let hasJoined: Bool
-    @Binding var pendingConfirmation: ActivityGroupsView.PendingConfirmation?
+    @Binding var pendingConfirmation: GroupPendingConfirmation?
     let openChat: () -> Void
-    var onMemberTapped: ((String) -> Void)? = nil
+    var onMemberTapped: ((GroupMember) -> Void)? = nil
 
     // Reuse the same slot type logic as GroupRowView for consistent UI
     private enum Slot: Identifiable {
@@ -908,7 +929,7 @@ struct GroupDetailView: View {
             .background(Color(UIColor.systemGray5))
             .overlay(Capsule().stroke(Color(UIColor.systemGray3), lineWidth: 1.5))
             .clipShape(Capsule())
-            .onTapGesture { onMemberTapped?(member.name) }
+            .onTapGesture { onMemberTapped?(member) }
         }
     }
 

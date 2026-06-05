@@ -39,6 +39,9 @@ struct MessagesView: View {
                 GroupChatView(groupID: groupID, showsCloseButton: false)
             }
         }
+        .task {
+            await store.loadJoinedGroups()
+        }
     }
 
     private var emptyState: some View {
@@ -183,7 +186,8 @@ struct GroupChatView: View {
                 HStack(spacing: 10) {
                     ForEach(group.members) { member in
                         Button {
-                            selectedProfile = UserProfile.profile(for: member.name)
+                            selectedProfile = store.userProfile(with: member.userID)
+                                ?? UserProfile.profile(for: member.name)
                         } label: {
                             HStack(spacing: 8) {
                                 AvatarCircle(
@@ -220,11 +224,10 @@ struct GroupChatView: View {
                         ChatBubble(
                             message: message,
                             isCurrentUser:
-                                message.senderName == MeetupStore.currentUserName,
+                                isCurrentUser(message),
                             onProfileTapped: {
-                                selectedProfile = UserProfile.profile(
-                                    for: message.senderName
-                                )
+                                selectedProfile = store.userProfile(with: message.senderID)
+                                    ?? UserProfile.profile(for: message.senderName)
                             }
                         )
                         .id(message.id)
@@ -234,6 +237,9 @@ struct GroupChatView: View {
                 .padding(.vertical, 16)
             }
             .onAppear {
+                Task {
+                    await store.loadMessages(for: group.id)
+                }
                 scrollToLatest(in: proxy, groupID: group.id, animated: false)
             }
             .onChange(of: store.messages(for: group.id).count) { _, _ in
@@ -290,8 +296,20 @@ struct GroupChatView: View {
     }
 
     private func sendMessage() {
-        store.sendMessage(groupID: groupID, body: draftMessage)
+        let body = draftMessage
         draftMessage = ""
+        Task {
+            await store.sendMessage(groupID: groupID, body: body)
+        }
+    }
+
+    private func isCurrentUser(_ message: ChatMessage) -> Bool {
+        if let senderID = message.senderID,
+           senderID == SupabaseService.shared.currentUserID {
+            return true
+        }
+
+        return message.senderName == MeetupStore.currentUserName
     }
 
     private func scrollToLatest(

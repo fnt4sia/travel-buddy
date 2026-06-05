@@ -13,7 +13,10 @@ struct GalleryPhoto: Identifiable, Hashable {
 struct UserProfile: Identifiable {
     let id = UUID()
 
+    // `name` is the public username/nickname shown in rooms and profile headers.
     var name: String
+    var realName: String
+    var email: String?
     var interests: [String]
     var languages: [String]
     var profileImageName: String
@@ -24,14 +27,16 @@ struct UserProfile: Identifiable {
     var gallery: [GalleryPhoto]
 
     let age: Int
-    let country: String
-    let languageFlag: String
+    var country: String
+    var languageFlag: String
     let isFavorite: Bool
-    let bio: String
-    let countryCode: String
+    var bio: String
+    var countryCode: String
 
     init(
         name: String,
+        realName: String? = nil,
+        email: String? = nil,
         age: Int,
         interests: [String],
         languages: [String],
@@ -48,6 +53,8 @@ struct UserProfile: Identifiable {
         gallery: [GalleryPhoto] = []
     ) {
         self.name = name
+        self.realName = realName ?? name
+        self.email = email
         self.age = age
         self.interests = interests
         self.languages = languages
@@ -65,13 +72,14 @@ struct UserProfile: Identifiable {
     }
     
     mutating func updateCountry(to newCountry: String) {
-            let trimmed = newCountry.trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !trimmed.isEmpty else { return }
-            var country = trimmed
-            var languageFlag = CountryMetadata.flag(for: trimmed)
-            var countryCode = CountryMetadata.code(for: trimmed)
-            var bio = "\(trimmed) origin • \(languages.joined(separator: ", "))"
-        }
+        let trimmed = newCountry.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+
+        country = trimmed
+        languageFlag = CountryMetadata.flag(for: trimmed)
+        countryCode = CountryMetadata.code(for: trimmed)
+        bio = "\(trimmed) origin • \(languages.joined(separator: ", "))"
+    }
 }
 
 extension UserProfile {
@@ -134,7 +142,10 @@ enum CurrentUserProfileStore {
     }()
 
     private enum Keys {
-        static let name = "userName"
+        static let legacyName = "userName"
+        static let username = "profileUsername"
+        static let realName = "profileRealName"
+        static let email = "profileEmail"
         static let age = "profileAge"
         static let country = "profileCountryOrigin"
         static let interests = "profileInterests"
@@ -150,7 +161,14 @@ enum CurrentUserProfileStore {
 
     static func currentProfile() -> UserProfile {
         let defaults = UserDefaults.standard
-        let name = clean(defaults.string(forKey: Keys.name)) ?? "You"
+        let legacyName = clean(defaults.string(forKey: Keys.legacyName))
+        let realName = clean(defaults.string(forKey: Keys.realName))
+            ?? legacyName
+            ?? "Your Name"
+        let username = clean(defaults.string(forKey: Keys.username))
+            ?? usernameCandidate(from: realName)
+            ?? "traveler"
+        let email = clean(defaults.string(forKey: Keys.email))
         let age = defaults.integer(forKey: Keys.age)
         let country = clean(defaults.string(forKey: Keys.country)) ?? defaultCountry
         let interests = decodedArray(
@@ -172,7 +190,9 @@ enum CurrentUserProfileStore {
             .map { GalleryPhoto(imageData: $0) }
 
         return UserProfile(
-            name: name,
+            name: username,
+            realName: realName,
+            email: email,
             age: age > 0 ? age : 24,
             interests: interests,
             languages: languages,
@@ -192,7 +212,10 @@ enum CurrentUserProfileStore {
 
     static func saveEditableProfile(_ profile: UserProfile) {
         let defaults = UserDefaults.standard
-        defaults.set(clean(profile.name) ?? "You", forKey: Keys.name)
+        defaults.set(clean(profile.name) ?? "traveler", forKey: Keys.username)
+        defaults.set(clean(profile.realName) ?? "Your Name", forKey: Keys.realName)
+        setOrRemove(clean(profile.email), forKey: Keys.email, in: defaults)
+        defaults.set(clean(profile.country) ?? defaultCountry, forKey: Keys.country)
         defaults.set(encodedArray(cleanedList(profile.interests)), forKey: Keys.interests)
         defaults.set(encodedArray(cleanedList(profile.languages)), forKey: Keys.languages)
         defaults.set(clean(profile.aboutMe), forKey: Keys.aboutMe)
@@ -213,15 +236,34 @@ enum CurrentUserProfileStore {
         else { defaults.removeObject(forKey: key) }
     }
 
+    static func saveAccountIdentity(
+        username: String,
+        realName: String,
+        email: String
+    ) {
+        let defaults = UserDefaults.standard
+        let cleanedRealName = clean(realName) ?? "Your Name"
+        let cleanedUsername = clean(username)
+            ?? usernameCandidate(from: cleanedRealName)
+            ?? "traveler"
+        defaults.set(cleanedUsername, forKey: Keys.username)
+        defaults.set(cleanedRealName, forKey: Keys.realName)
+        defaults.set(clean(email)?.lowercased(), forKey: Keys.email)
+        defaults.set(cleanedRealName, forKey: Keys.legacyName)
+        ensureMemberSince()
+    }
+
     static func saveOnboardingProfile(
-        name: String,
+        username: String,
+        realName: String,
+        email: String,
         age: Int,
         country: String,
         interests: [String],
         languages: [String]
     ) {
         let defaults = UserDefaults.standard
-        defaults.set(clean(name) ?? "You", forKey: Keys.name)
+        saveAccountIdentity(username: username, realName: realName, email: email)
         defaults.set(age, forKey: Keys.age)
         defaults.set(clean(country) ?? defaultCountry, forKey: Keys.country)
         defaults.set(encodedArray(cleanedList(interests)), forKey: Keys.interests)
@@ -292,6 +334,18 @@ enum CurrentUserProfileStore {
         return cleaned.isEmpty ? fallback : cleaned
     }
 
+    static func usernameCandidate(from value: String?) -> String? {
+        var text = clean(value)?.lowercased() ?? ""
+        while text.hasPrefix("@") { text.removeFirst() }
+
+        text = text
+            .replacingOccurrences(of: "[^a-z0-9._]+", with: "_", options: .regularExpression)
+            .replacingOccurrences(of: "_+", with: "_", options: .regularExpression)
+            .trimmingCharacters(in: CharacterSet(charactersIn: "._"))
+
+        return text.count >= 3 ? text : nil
+    }
+
     static func countryOption(named country: String) -> CountryOption? {
         let cleanedCountry = country.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !cleanedCountry.isEmpty else { return nil }
@@ -303,7 +357,7 @@ enum CurrentUserProfileStore {
     }
 }
 
-private enum CountryMetadata {
+enum CountryMetadata {
     static func flag(for country: String) -> String {
         if let option = CurrentUserProfileStore.countryOption(named: country) {
             return flag(forRegionCode: option.code)

@@ -1,21 +1,19 @@
-import AuthenticationServices
 import CoreLocation
 import SwiftUI
-
-private let colors = AppColors()
 
 enum OnboardingStep {
     case welcome
     case nameInput
     case profileDetails
-    case appleSignIn
     case locationPermission
     case locationConfirmed
 }
 
 struct UnifiedOnboardingView: View {
     @State private var currentStep: OnboardingStep = .welcome
-    @State private var firstName = ""
+    @State private var realName = ""
+    @State private var username = ""
+    @State private var email = ""
     @State private var ageText = ""
     @State private var countryOrigin = CurrentUserProfileStore.defaultCountry
     @State private var selectedInterests = Set(
@@ -29,7 +27,9 @@ struct UnifiedOnboardingView: View {
     @State private var keyboardHeight: CGFloat = 0
     @State private var mascotIdle = false
     @State private var mascotsAreOffscreen = false
-    @State private var appleSignInError: String?
+    @State private var accountError: String?
+    @State private var isSavingProfile = false
+    @ObservedObject private var supabaseService = SupabaseService.shared
     @AppStorage("hasOnboarded") private var hasOnboarded = false
     @StateObject private var locationViewModel = LocationPermissionViewModel()
 
@@ -134,8 +134,6 @@ struct UnifiedOnboardingView: View {
             nameInputFormContent
         case .profileDetails:
             profileDetailsFormContent
-        case .appleSignIn:
-            appleSignInFormContent
         case .locationPermission:
             locationPermissionFormContent
         case .locationConfirmed:
@@ -188,15 +186,11 @@ struct UnifiedOnboardingView: View {
         case .welcome:
             EmptyView()
         case .nameInput:
-            Text("Let's start your\nAdventure!")
+            Text("Create your\nGloob profile")
                 .font(.largeTitle).fontWeight(.bold)
                 .foregroundColor(AppColors.primaryText)
         case .profileDetails:
             Text("Set your\ntravel vibe")
-                .font(.largeTitle).fontWeight(.bold)
-                .foregroundColor(AppColors.primaryText)
-        case .appleSignIn:
-            Text("One last step\nbefore we go!")
                 .font(.largeTitle).fontWeight(.bold)
                 .foregroundColor(AppColors.primaryText)
         case .locationPermission:
@@ -205,7 +199,7 @@ struct UnifiedOnboardingView: View {
                 .foregroundColor(AppColors.primaryText)
         case .locationConfirmed:
             VStack(alignment: .center, spacing: 4) {
-                Text("Hi, \(UserDefaults.standard.string(forKey: "userName") ?? "there").")
+                Text("Hi, \(CurrentUserProfileStore.currentProfile().name).")
                     .font(.largeTitle).fontWeight(.bold)
                     .foregroundColor(AppColors.primaryText)
                 HStack(spacing: 0) {
@@ -226,10 +220,9 @@ struct UnifiedOnboardingView: View {
     private var stepLabel: String {
         switch currentStep {
         case .welcome: return ""
-        case .nameInput: return "Name - 1 of 4"
-        case .profileDetails: return "Profile - 2 of 4"
-        case .appleSignIn: return "Account - 3 of 4"
-        case .locationPermission: return "Location - 4 of 4"
+        case .nameInput: return "Account - 1 of 3"
+        case .profileDetails: return "Profile - 2 of 3"
+        case .locationPermission: return "Location - 3 of 3"
         case .locationConfirmed: return ""
         }
     }
@@ -237,31 +230,52 @@ struct UnifiedOnboardingView: View {
     // MARK: - Form screens
 
     private var nameInputFormContent: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("First name")
-                .font(.headline)
-                .foregroundColor(AppColors.primaryText)
+        VStack(alignment: .leading, spacing: 14) {
+            onboardingTextField(
+                title: "Real name",
+                placeholder: "Your full name",
+                text: $realName,
+                keyboardType: .default,
+                textContentType: .name,
+                autocapitalization: .words
+            )
 
-            TextField("How can we address you?", text: $firstName)
-                .padding()
-                .background(AppColors.textFieldBackground)
-                .clipShape(RoundedRectangle(cornerRadius: 12))
-                .overlay(RoundedRectangle(cornerRadius: 12).stroke(AppColors.textFieldBorder, lineWidth: 1))
+            onboardingTextField(
+                title: "Username",
+                placeholder: "gloobmate",
+                text: $username,
+                keyboardType: .default,
+                textContentType: .username,
+                autocapitalization: .never
+            )
 
-            Button(action: {
-                guard !firstName.trimmingCharacters(in: .whitespaces).isEmpty else { return }
-                UserDefaults.standard.set(firstName, forKey: "userName")
-                withAnimation(.easeInOut(duration: 0.6)) { currentStep = .profileDetails }
-            }) {
-                Text("Let's go")
+            onboardingTextField(
+                title: "Email",
+                placeholder: "you@example.com",
+                text: $email,
+                keyboardType: .emailAddress,
+                textContentType: .emailAddress,
+                autocapitalization: .never
+            )
+
+            if let accountError {
+                Text(accountError)
+                    .font(.caption)
+                    .fontWeight(.medium)
+                    .foregroundStyle(.red)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            Button(action: continueFromAccountStep) {
+                Text("Continue")
                     .fontWeight(.semibold)
                     .frame(maxWidth: .infinity)
                     .padding()
-                    .background(firstName.isEmpty ? AppColors.accentDisabled : AppColors.accent)
+                    .background(isAccountReady ? AppColors.accent : AppColors.accentDisabled)
                     .foregroundColor(.white)
                     .clipShape(Capsule())
             }
-            .disabled(firstName.isEmpty)
+            .disabled(!isAccountReady)
         }
     }
 
@@ -320,10 +334,9 @@ struct UnifiedOnboardingView: View {
                 )
 
                 Button(action: {
-                    guard saveProfileForOnboarding() else { return }
-                    withAnimation(.easeInOut(duration: 0.6)) { currentStep = .appleSignIn }
+                    continueFromProfileStep()
                 }) {
-                    Text("Continue")
+                    Text(isSavingProfile ? "Saving..." : "Continue")
                         .fontWeight(.semibold)
                         .frame(maxWidth: .infinity)
                         .padding()
@@ -331,57 +344,11 @@ struct UnifiedOnboardingView: View {
                         .foregroundColor(.white)
                         .clipShape(Capsule())
                 }
-                .disabled(!isProfileDetailsReady)
+                .disabled(!isProfileDetailsReady || isSavingProfile)
             }
             .padding(.bottom, 4)
         }
         .frame(maxHeight: 470)
-    }
-
-    // MARK: - Apple Sign In screen
-
-    private var appleSignInFormContent: some View {
-        VStack(spacing: 16) {
-            Text("Connect your Apple account to save your profile and sync across devices.")
-                .font(.body)
-                .foregroundColor(AppColors.primaryText.opacity(0.7))
-                .multilineTextAlignment(.leading)
-                .frame(maxWidth: .infinity, alignment: .leading)
-
-            if let error = appleSignInError {
-                Text(error)
-                    .font(.caption)
-                    .foregroundColor(.red)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            }
-
-            // Real Sign In with Apple button — requests credentials
-            SignInWithAppleButton(.signIn) { request in
-                request.requestedScopes = [.fullName, .email]
-            } onCompletion: { result in
-                handleAppleSignIn(result)
-            }
-            .signInWithAppleButtonStyle(.black)
-            .frame(maxWidth: .infinity)
-            .frame(height: 50)
-            .clipShape(Capsule())
-
-            Button(action: {
-                // Skip Apple Sign In and continue as guest
-                withAnimation(.easeInOut(duration: 0.6)) {
-                    currentStep = .locationPermission
-                }
-            }) {
-                Text("Continue without signing in")
-                    .font(.subheadline)
-                    .foregroundColor(AppColors.secondaryText)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 14)
-                    .overlay(
-                        Capsule().stroke(AppColors.secondaryText.opacity(0.4), lineWidth: 1)
-                    )
-            }
-        }
     }
 
     private var locationPermissionFormContent: some View {
@@ -408,6 +375,9 @@ struct UnifiedOnboardingView: View {
     private var locationConfirmedFormContent: some View {
         Button(action: {
             _ = saveProfileForOnboarding()
+            Task { @MainActor in
+                _ = await syncProfileToSupabaseIfPossible()
+            }
             if let detectedCity = city {
                 UserDefaults.standard.set(detectedCity, forKey: "userCity")
             }
@@ -436,7 +406,6 @@ struct UnifiedOnboardingView: View {
                 .foregroundColor(AppColors.secondaryText)
                 .multilineTextAlignment(.center)
 
-            // Get Started — goes to name input (no Apple auth here)
             Button(action: {
                 withAnimation(.easeInOut(duration: 0.6)) { currentStep = .nameInput }
             }) {
@@ -448,74 +417,53 @@ struct UnifiedOnboardingView: View {
                     .foregroundColor(.white)
                     .clipShape(Capsule())
             }
-
-            // Sign in with Apple on welcome — authenticates then skips to appleSignIn step
-            // so credentials are collected before the dedicated screen
-            SignInWithAppleButton(.signIn) { request in
-                request.requestedScopes = [.fullName, .email]
-            } onCompletion: { result in
-                handleWelcomeAppleSignIn(result)
-            }
-            .signInWithAppleButtonStyle(.white)
-            .frame(maxWidth: .infinity)
-            .frame(height: 50)
-            .clipShape(Capsule())
-            .shadow(radius: 10)
         }
     }
 
-    // MARK: - Apple Sign In handlers
+    @discardableResult
+    private func syncProfileToSupabaseIfPossible() async -> Bool {
+        guard supabaseService.isConfigured else { return true }
 
-    /// Called from the welcome screen — authenticates and jumps to nameInput
-    private func handleWelcomeAppleSignIn(
-        _ result: Result<ASAuthorization, Error>
-    ) {
-        switch result {
-        case .success(let auth):
-            if let credential = auth.credential as? ASAuthorizationAppleIDCredential {
-                let givenName = credential.fullName?.givenName ?? ""
-                if !givenName.isEmpty {
-                    firstName = givenName
-                    UserDefaults.standard.set(givenName, forKey: "userName")
-                }
-                // Store Apple user ID for future silent re-auth
-                UserDefaults.standard.set(credential.user, forKey: "appleUserID")
-            }
-            withAnimation(.easeInOut(duration: 0.6)) { currentStep = .nameInput }
-        case .failure(let error):
-            // User cancelled or failed — just start the normal flow
-            print("Welcome Apple Sign In cancelled/failed: \(error.localizedDescription)")
-            withAnimation(.easeInOut(duration: 0.6)) { currentStep = .nameInput }
-        }
-    }
-
-    /// Called from the dedicated appleSignIn step screen
-    private func handleAppleSignIn(
-        _ result: Result<ASAuthorization, Error>
-    ) {
-        switch result {
-        case .success(let auth):
-            if let credential = auth.credential as? ASAuthorizationAppleIDCredential {
-                let givenName = credential.fullName?.givenName ?? ""
-                if !givenName.isEmpty {
-                    firstName = givenName
-                    UserDefaults.standard.set(givenName, forKey: "userName")
-                }
-                UserDefaults.standard.set(credential.user, forKey: "appleUserID")
-                appleSignInError = nil
-            }
-            withAnimation(.easeInOut(duration: 0.6)) { currentStep = .locationPermission }
-        case .failure(let error):
-            let nsError = error as NSError
-            // Code 1001 = user cancelled — don't show error for that
-            if nsError.code != 1001 {
-                appleSignInError = "Sign in failed. Please try again."
-                print("Apple Sign In failed: \(error.localizedDescription)")
-            }
+        do {
+            try await supabaseService.signInWithCurrentProfile()
+            accountError = nil
+            return true
+        } catch {
+            accountError = error.localizedDescription
+            print("Supabase profile upsert failed: \(error.localizedDescription)")
+            return false
         }
     }
 
     // MARK: - Helpers
+
+    private func onboardingTextField(
+        title: String,
+        placeholder: String,
+        text: Binding<String>,
+        keyboardType: UIKeyboardType,
+        textContentType: UITextContentType?,
+        autocapitalization: TextInputAutocapitalization
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(title)
+                .font(.headline)
+                .foregroundColor(AppColors.primaryText)
+
+            TextField(placeholder, text: text)
+                .keyboardType(keyboardType)
+                .textContentType(textContentType)
+                .textInputAutocapitalization(autocapitalization)
+                .autocorrectionDisabled()
+                .padding()
+                .background(AppColors.textFieldBackground)
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12)
+                        .stroke(AppColors.textFieldBorder, lineWidth: 1)
+                )
+        }
+    }
 
     private func onboardingChoiceSection(
         title: String,
@@ -590,15 +538,67 @@ struct UnifiedOnboardingView: View {
             && !selectedLanguages.isEmpty
     }
 
+    private var normalizedUsername: String? {
+        SupabaseService.normalizedUsername(username)
+    }
+
+    private var normalizedEmail: String? {
+        SupabaseService.normalizedEmail(email)
+    }
+
+    private var isAccountReady: Bool {
+        !realName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            && normalizedUsername != nil
+            && normalizedEmail != nil
+    }
+
+    private func continueFromAccountStep() {
+        guard let normalizedUsername, let normalizedEmail else {
+            accountError = "Use a valid email and a username with at least 3 letters or numbers."
+            return
+        }
+
+        CurrentUserProfileStore.saveAccountIdentity(
+            username: normalizedUsername,
+            realName: realName,
+            email: normalizedEmail
+        )
+        accountError = nil
+        withAnimation(.easeInOut(duration: 0.6)) {
+            currentStep = .profileDetails
+        }
+    }
+
+    private func continueFromProfileStep() {
+        guard saveProfileForOnboarding() else { return }
+
+        isSavingProfile = true
+        Task { @MainActor in
+            let didSync = await syncProfileToSupabaseIfPossible()
+            isSavingProfile = false
+
+            guard didSync || !supabaseService.isConfigured else { return }
+
+            withAnimation(.easeInOut(duration: 0.6)) {
+                currentStep = .locationPermission
+            }
+        }
+    }
+
     @discardableResult
     private func saveProfileForOnboarding() -> Bool {
-        let name = firstName.trimmingCharacters(in: .whitespacesAndNewlines)
         guard let parsedAge else {
             CurrentUserProfileStore.ensureMemberSince()
             return false
         }
+        guard let normalizedUsername, let normalizedEmail else {
+            accountError = "Use a valid email and a username with at least 3 letters or numbers."
+            return false
+        }
         CurrentUserProfileStore.saveOnboardingProfile(
-            name: name.isEmpty ? "You" : name,
+            username: normalizedUsername,
+            realName: realName,
+            email: normalizedEmail,
             age: parsedAge,
             country: countryOrigin,
             interests: orderedSelection(selectedInterests, options: CurrentUserProfileStore.availableInterests),
@@ -619,8 +619,7 @@ struct UnifiedOnboardingView: View {
             case .welcome: break
             case .nameInput: currentStep = .welcome
             case .profileDetails: currentStep = .nameInput
-            case .appleSignIn: currentStep = .profileDetails
-            case .locationPermission: currentStep = .appleSignIn
+            case .locationPermission: currentStep = .profileDetails
             case .locationConfirmed: currentStep = .locationPermission
             }
         }
@@ -686,7 +685,7 @@ struct UnifiedOnboardingView: View {
     private var globeOffset: CGFloat {
         switch currentStep {
         case .welcome: return -250
-        case .nameInput, .profileDetails, .appleSignIn, .locationPermission: return 250
+        case .nameInput, .profileDetails, .locationPermission: return 250
         case .locationConfirmed: return 200
         }
     }

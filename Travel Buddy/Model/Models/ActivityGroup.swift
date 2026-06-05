@@ -5,6 +5,7 @@ struct ActivityGroup: Identifiable {
     static let maximumCapacity = 8
 
     let id: UUID
+    let placeID: String?
     let name: String
     let description: String
     let address: String
@@ -15,6 +16,7 @@ struct ActivityGroup: Identifiable {
 
     init(
         id: UUID = UUID(),
+        placeID: String? = nil,
         name: String,
         description: String,
         address: String,
@@ -24,6 +26,7 @@ struct ActivityGroup: Identifiable {
         meetingTime: String
     ) {
         self.id = id
+        self.placeID = placeID
         self.name = name
         self.description = description
         self.address = address
@@ -47,11 +50,13 @@ struct ActivityGroup: Identifiable {
 
 struct GroupMember: Identifiable {
     let id: UUID
+    let userID: UUID?
     let name: String
     let color: String
 
-    init(id: UUID = UUID(), name: String, color: String) {
-        self.id = id
+    init(id: UUID = UUID(), userID: UUID? = nil, name: String, color: String) {
+        self.id = userID ?? id
+        self.userID = userID
         self.name = name
         self.color = color
     }

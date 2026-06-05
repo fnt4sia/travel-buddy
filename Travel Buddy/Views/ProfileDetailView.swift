@@ -50,7 +50,7 @@ struct ProfileDetailView: View {
                         // Name and Age
                         VStack(spacing: 8) {
                             HStack(spacing: 4) {
-                                Text(profile.name)
+                                Text(displayUsername)
                                     .font(.system(size: 28, weight: .bold))
                                     .foregroundStyle(.white)
                                 
@@ -58,6 +58,10 @@ struct ProfileDetailView: View {
                                     .font(.system(size: 24, weight: .semibold))
                                     .foregroundStyle(.white.opacity(0.8))
                             }
+
+                            Text(profile.realName)
+                                .font(.system(size: 15, weight: .medium))
+                                .foregroundStyle(.white.opacity(0.78))
                         }
                         
                         // Favorite button
@@ -158,6 +162,10 @@ struct ProfileDetailView: View {
         case "Fitness": return "dumbbell.fill"
         default: return "star.fill"
         }
+    }
+
+    private var displayUsername: String {
+        profile.name.hasPrefix("@") ? profile.name : "@\(profile.name)"
     }
 }
 

@@ -399,6 +399,7 @@ struct PlacesService {
         DevelopmentPlace(
             region: region,
             annotation: PlaceAnnotation(
+                id: stableID(region: region, name: name),
                 name: name,
                 address: address,
                 description: description,
@@ -408,5 +409,26 @@ struct PlacesService {
                 userRatingCount: reviews
             )
         )
+    }
+
+    private static func stableID(region: DevelopmentRegion, name: String) -> String {
+        let prefix: String
+        switch region {
+        case .badung:
+            prefix = "badung"
+        case .cupertino:
+            prefix = "cupertino"
+        }
+
+        let slug = name
+            .lowercased()
+            .replacingOccurrences(
+                of: "[^a-z0-9]+",
+                with: "-",
+                options: .regularExpression
+            )
+            .trimmingCharacters(in: CharacterSet(charactersIn: "-"))
+
+        return "\(prefix)-\(slug)"
     }
 }

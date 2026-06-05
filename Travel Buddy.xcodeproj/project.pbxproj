@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		6C5A00042FE1000000000004 /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = 6C5A00032FE1000000000003 /* Supabase */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		6CB899632FBD7FA100D989D1 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -54,6 +58,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				6C5A00042FE1000000000004 /* Supabase in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -116,6 +121,7 @@
 			);
 			name = "Travel Buddy";
 			packageProductDependencies = (
+				6C5A00032FE1000000000003 /* Supabase */,
 			);
 			productName = "Travel Buddy";
 			productReference = 6CB899552FBD7F9F00D989D1 /* Travel Buddy.app */;
@@ -199,6 +205,9 @@
 			);
 			mainGroup = 6CB8994C2FBD7F9F00D989D1;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				6C5A00022FE1000000000002 /* XCRemoteSwiftPackageReference "supabase-swift" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 6CB899562FBD7F9F00D989D1 /* Products */;
 			projectDirPath = "";
@@ -590,6 +599,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		6C5A00022FE1000000000002 /* XCRemoteSwiftPackageReference "supabase-swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/supabase/supabase-swift.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.0.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		6C5A00032FE1000000000003 /* Supabase */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 6C5A00022FE1000000000002 /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Supabase;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 6CB8994D2FBD7F9F00D989D1 /* Project object */;
 }
