@@ -11,6 +11,7 @@ import SwiftUI
 
 struct ActivityGroupsView: View {
     let place: PlaceAnnotation?
+    let onOpenChat: ((UUID) -> Void)?
     /// Set to true when pushed inside an existing NavigationStack (e.g. PlaceDetailSheet).
     /// Prevents double-nesting NavigationStacks which crashes SwiftUI.
     let isEmbedded: Bool
@@ -29,9 +30,14 @@ struct ActivityGroupsView: View {
     enum PendingConfirmation { case join(ActivityGroup), leave(ActivityGroup) }
     @State private var pendingConfirmation: PendingConfirmation?
 
-    init(place: PlaceAnnotation? = nil, isEmbedded: Bool = false) {
+    init(
+        place: PlaceAnnotation? = nil,
+        isEmbedded: Bool = false,
+        onOpenChat: ((UUID) -> Void)? = nil
+    ) {
         self.place = place
         self.isEmbedded = isEmbedded
+        self.onOpenChat = onOpenChat
     }
 
     var body: some View {
@@ -98,7 +104,7 @@ struct ActivityGroupsView: View {
                         meetingTime: meetingTime,
                         maxCapacity: maxCapacity
                     ) {
-                        path = [.chat(created.id)]
+                        openChat(created.id)
                     }
                 }
             )
@@ -126,7 +132,7 @@ struct ActivityGroupsView: View {
                     group: group,
                     hasJoined: viewModel.hasJoinedGroup(group),
                     pendingConfirmation: $pendingConfirmation,
-                    openChat: { path.append(.chat(group.id)) },
+                    openChat: { openChat(group.id) },
                     onMemberTapped: { path.append(.profile($0)) }
                 )
             } else {
@@ -170,7 +176,7 @@ struct ActivityGroupsView: View {
                     switch captured {
                     case .join(let group):
                         if let joined = viewModel.joinGroup(group) {
-                            path.append(.chat(joined.id))
+                            openChat(joined.id)
                         }
                     case .leave(let group):
                         viewModel.leaveGroup(group)
@@ -244,7 +250,7 @@ struct ActivityGroupsView: View {
 
     private var groupsList: some View {
         ScrollView(showsIndicators: false) {
-            VStack(spacing: 12) {
+            VStack(spacing: 10) {
                 ForEach(viewModel.availableGroups) { group in
                     GroupRowView(
                         group: group,
@@ -256,8 +262,16 @@ struct ActivityGroupsView: View {
                     )
                 }
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 8)
+        }
+    }
+
+    private func openChat(_ groupID: UUID) {
+        if let onOpenChat {
+            onOpenChat(groupID)
+        } else {
+            path.append(.chat(groupID))
         }
     }
 }
@@ -273,88 +287,80 @@ struct GroupRowView: View {
     var onMemberTapped: ((String) -> Void)? = nil
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            HStack(alignment: .top, spacing: 12) {
-                VStack(alignment: .leading, spacing: 7) {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .top, spacing: 10) {
+                VStack(alignment: .leading, spacing: 5) {
                     Text(group.name)
-                        .font(.system(size: 18, weight: .bold))
+                        .font(.system(size: 17, weight: .bold))
                         .foregroundStyle(AppColors.primaryText)
                         .lineLimit(2)
 
                     Text(group.description)
-                        .font(.system(size: 14))
+                        .font(.system(size: 13))
                         .foregroundStyle(AppColors.secondaryText)
-                        .lineLimit(3)
+                        .lineLimit(2)
                         .fixedSize(horizontal: false, vertical: true)
                 }
 
-                Spacer(minLength: 8)
+                Spacer(minLength: 6)
 
                 statusBadge
             }
 
             infoRow
 
-            capacityRow
-
-            HStack {
-                Spacer()
-                actionButton
-            }
+            attendeesAndActionRow
         }
-        .padding(16)
-        .background(AppColors.surface, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .padding(12)
+        .background(AppColors.surface, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
         .overlay(
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
                 .stroke(AppColors.cardBorder, lineWidth: 1)
         )
-        .shadow(color: .black.opacity(0.04), radius: 10, x: 0, y: 6)
-        .contentShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .shadow(color: .black.opacity(0.035), radius: 8, x: 0, y: 4)
+        .contentShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
         .onTapGesture { onCardTapped() }
     }
 
     // MARK: Helpers
 
     private var statusBadge: some View {
-        Text(hasJoined ? "Joined" : (group.isFull ? "Full" : "\(group.availableSpots) spots"))
-            .font(.system(size: 12, weight: .bold))
-            .foregroundStyle(hasJoined ? .white : AppColors.brandPrimary)
-            .padding(.horizontal, 10)
-            .padding(.vertical, 6)
+        Text(statusTitle)
+            .font(.system(size: 11, weight: .bold))
+            .foregroundStyle(statusForeground)
+            .padding(.horizontal, 9)
+            .padding(.vertical, 5)
             .background(
-                hasJoined ? AppColors.brandPrimary : AppColors.accentSurface,
+                statusBackground,
                 in: Capsule()
             )
             .overlay(
                 Capsule()
-                    .stroke(hasJoined ? .clear : AppColors.cardBorder, lineWidth: 1)
+                    .stroke(statusBorder, lineWidth: 1)
             )
     }
 
     private var infoRow: some View {
         HStack(spacing: 8) {
             MeetupInfoPill(icon: "clock", text: group.meetingTime)
-            MeetupInfoPill(
-                icon: "person.2.fill",
-                text: "\(group.members.count)/\(group.maxCapacity)"
-            )
         }
     }
 
-    private var capacityRow: some View {
+    private var attendeesAndActionRow: some View {
         HStack(spacing: 10) {
-            HStack(spacing: 6) {
-                ForEach(0..<group.maxCapacity, id: \.self) { index in
-                    capacityDot(at: index)
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: -6) {
+                    ForEach(Array(group.members.enumerated()), id: \.element.id) { index, member in
+                        memberAvatar(for: member)
+                            .zIndex(Double(group.members.count - index))
+                    }
                 }
+                .padding(.trailing, 6)
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .scrollDisabled(group.members.count <= 7)
 
-            Spacer(minLength: 8)
-
-            Text(group.isFull ? "No spots left" : "\(group.availableSpots) open")
-                .font(.caption)
-                .fontWeight(.semibold)
-                .foregroundStyle(AppColors.secondaryText)
+            actionButton
         }
     }
 
@@ -368,8 +374,8 @@ struct GroupRowView: View {
         } label: {
             Text(actionTitle)
                 .font(.system(size: 14, weight: .bold))
-                .frame(minWidth: 76)
-                .padding(.vertical, 10)
+                .frame(minWidth: 72)
+                .padding(.vertical, 9)
                 .padding(.horizontal, 12)
                 .background(actionBackground, in: Capsule())
                 .foregroundStyle(actionForeground)
@@ -394,37 +400,52 @@ struct GroupRowView: View {
         hasJoined || (!group.isFull) ? .white : .gray
     }
 
+    private var statusTitle: String {
+        if hasJoined { return "Joined" }
+        if group.isFull { return "Full" }
+        return "\(group.availableSpots) left"
+    }
+
+    private var statusForeground: Color {
+        if hasJoined { return AppColors.joinedStatusText }
+        if group.isFull { return AppColors.secondaryText }
+        return AppColors.brandPrimary
+    }
+
+    private var statusBackground: Color {
+        if hasJoined { return AppColors.joinedStatusSurface }
+        if group.isFull { return Color(UIColor.systemGray5) }
+        return AppColors.accentSurface
+    }
+
+    private var statusBorder: Color {
+        if hasJoined { return AppColors.warmAccent.opacity(0.45) }
+        return AppColors.cardBorder
+    }
+
     private func firstInitial(for fullName: String) -> String {
         String(fullName.split(separator: " ").first?.prefix(1) ?? "")
     }
 
-    @ViewBuilder
-    private func capacityDot(at index: Int) -> some View {
-        if index < group.members.count {
-            let member = group.members[index]
-            Button {
-                onMemberTapped?(member.name)
-            } label: {
-                Circle()
-                    .fill(memberColor(for: member.color))
-                    .frame(width: 27, height: 27)
-                    .overlay(
-                        Text(firstInitial(for: member.name))
-                            .font(.caption2)
-                            .fontWeight(.bold)
-                            .foregroundStyle(.white)
-                    )
-            }
-            .buttonStyle(.plain)
-        } else {
+    private func memberAvatar(for member: GroupMember) -> some View {
+        Button {
+            onMemberTapped?(member.name)
+        } label: {
             Circle()
-                .fill(AppColors.accentSurface)
-                .frame(width: 27, height: 27)
+                .fill(memberColor(for: member.color))
+                .frame(width: 28, height: 28)
                 .overlay(
                     Circle()
-                        .stroke(AppColors.cardBorder, lineWidth: 1)
+                        .stroke(AppColors.surface, lineWidth: 2)
+                )
+                .overlay(
+                    Text(firstInitial(for: member.name))
+                        .font(.caption2)
+                        .fontWeight(.bold)
+                        .foregroundStyle(.white)
                 )
         }
+        .buttonStyle(.plain)
     }
 
     private func memberColor(for colorName: String) -> Color {
@@ -736,19 +757,16 @@ struct GroupDetailView: View {
     // Reuse the same slot type logic as GroupRowView for consistent UI
     private enum Slot: Identifiable {
         case member(GroupMember)
-        case available(Int)
+
         var id: String {
             switch self {
             case .member(let m): return m.id.uuidString
-            case .available(let i): return "available-\(i)"
             }
         }
     }
 
     private var allSlots: [Slot] {
-        (0..<group.maxCapacity).map { i in
-            i < group.members.count ? .member(group.members[i]) : .available(i)
-        }
+        group.members.map { .member($0) }
     }
 
     // Same right-first two-column layout as GroupRowView
@@ -891,20 +909,6 @@ struct GroupDetailView: View {
             .overlay(Capsule().stroke(Color(UIColor.systemGray3), lineWidth: 1.5))
             .clipShape(Capsule())
             .onTapGesture { onMemberTapped?(member.name) }
-
-        case .available:
-            HStack {
-                Text("Available")
-                    .font(.callout)
-                    .fontWeight(.medium)
-                    .foregroundStyle(AppColors.secondaryText)
-            }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
-            .frame(maxWidth: .infinity, minHeight: 36, alignment: .leading)
-            .background(Color(UIColor.systemGray5))
-            .overlay(Capsule().stroke(Color(UIColor.systemGray3), lineWidth: 1.5))
-            .clipShape(Capsule())
         }
     }
 

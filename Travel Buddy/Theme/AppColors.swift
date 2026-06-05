@@ -24,6 +24,22 @@ struct AppColors {
         Color(red: 0.945, green: 0.616, blue: 0.224)
     }
 
+    static var joinedStatusSurface: Color {
+        Color(UIColor { traitCollection in
+            traitCollection.userInterfaceStyle == .dark
+                ? UIColor(red: 0.24, green: 0.18, blue: 0.08, alpha: 1)
+                : UIColor(red: 1.00, green: 0.94, blue: 0.84, alpha: 1)
+        })
+    }
+
+    static var joinedStatusText: Color {
+        Color(UIColor { traitCollection in
+            traitCollection.userInterfaceStyle == .dark
+                ? UIColor(red: 1.00, green: 0.78, blue: 0.46, alpha: 1)
+                : UIColor(red: 0.42, green: 0.25, blue: 0.03, alpha: 1)
+        })
+    }
+
     // MARK: - Primary Colors
     static var primaryText: Color {
         Color(UIColor { traitCollection in

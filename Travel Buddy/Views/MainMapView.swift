@@ -82,7 +82,9 @@ struct Triangle: Shape {
 
 struct PlaceDetailSheet: View {
     let place: PlaceAnnotation
+    var onOpenChat: (UUID) -> Void = { _ in }
 
+    @Environment(\.dismiss) private var dismiss
     @StateObject private var groupsViewModel = GroupsViewModel()
     @State private var showDatePicker = false
     @State private var showCreateMeetup = false
@@ -117,7 +119,10 @@ struct PlaceDetailSheet: View {
                             switch route {
 
                             case .meetups:
-                                ActivityGroupsView(place: place)
+                                ActivityGroupsView(
+                                    place: place,
+                                    onOpenChat: openMessageRoom
+                                )
 
                             case .detail(let groupID):
                                 if let group = MeetupStore.shared.group(with: groupID) {
@@ -126,7 +131,7 @@ struct PlaceDetailSheet: View {
                                         hasJoined: groupsViewModel.hasJoinedGroup(group),
                                         pendingConfirmation: .constant(nil),
                                         openChat: {
-                                            path.append(.chat(groupID))
+                                            openMessageRoom(groupID)
                                         }
                                     )
                                 }
@@ -168,7 +173,7 @@ struct PlaceDetailSheet: View {
                         switch captured {
                         case .join(let group):
                             if let joined = groupsViewModel.joinGroup(group) {
-                                path = [.chat(joined.id)]
+                                openMessageRoom(joined.id)
                             }
                         case .leave(let group):
                             groupsViewModel.leaveGroup(group)
@@ -201,7 +206,7 @@ struct PlaceDetailSheet: View {
                         meetingTime: meetingTime,
                         maxCapacity: maxCapacity
                     ) {
-                        path = [.chat(created.id)]
+                        openMessageRoom(created.id)
                     }
                 }
             )
@@ -361,6 +366,11 @@ struct PlaceDetailSheet: View {
             groupsViewModel.refreshAvailableGroups()
         }
     }
+
+    private func openMessageRoom(_ groupID: UUID) {
+        dismiss()
+        onOpenChat(groupID)
+    }
 }
 
 // MARK: - Filter menu
@@ -421,7 +431,7 @@ struct FilterMenuView: View {
 // MARK: - Main map
 
 struct MainMapView: View {
-    // onOpenChat removed — chat navigation is owned by ActivityGroupsView
+    var onOpenChat: (UUID) -> Void = { _ in }
     @StateObject private var viewModel = ExploreViewModel()
 
     @State private var selectedPlace: PlaceAnnotation? = nil
@@ -469,6 +479,14 @@ struct MainMapView: View {
             }
 
             if showFilterMenu {
+                Color.black.opacity(0.001)
+                    .ignoresSafeArea()
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        withAnimation { showFilterMenu = false }
+                    }
+                    .zIndex(9)
+
                 VStack {
                     HStack {
                         Spacer()
@@ -487,7 +505,6 @@ struct MainMapView: View {
                     )
                 )
                 .zIndex(10)
-                .onTapGesture { withAnimation { showFilterMenu = false } }
             }
 
             VStack {
@@ -507,7 +524,13 @@ struct MainMapView: View {
             Task { await viewModel.loadPlaces(filter: newValue) }
         }
         .sheet(item: $selectedPlace) { place in
-            PlaceDetailSheet(place: place)
+            PlaceDetailSheet(
+                place: place,
+                onOpenChat: { groupID in
+                    selectedPlace = nil
+                    onOpenChat(groupID)
+                }
+            )
                 .presentationDetents([.medium, .large])
                 .presentationDragIndicator(.hidden)
                 .presentationCornerRadius(24)
