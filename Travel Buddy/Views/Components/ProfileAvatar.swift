@@ -9,6 +9,7 @@ import SwiftUI
 
 struct ProfileAvatar: View {
     let imageName: String
+    var imageData: Data? = nil
     var size: CGFloat = ProfileMetrics.Avatar.size
 
     private var shape: some Shape {
@@ -25,7 +26,11 @@ struct ProfileAvatar: View {
 
     @ViewBuilder
     private var avatarContent: some View {
-        if UIImage(named: imageName) != nil {
+        if let imageData, let uiImage = UIImage(data: imageData) {
+            Image(uiImage: uiImage)
+                .resizable()
+                .scaledToFill()
+        } else if UIImage(named: imageName) != nil {
             Image(imageName)
                 .resizable()
                 .scaledToFill()
