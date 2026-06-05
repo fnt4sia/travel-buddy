@@ -17,7 +17,7 @@ struct UnifiedOnboardingView: View {
     @State private var currentStep: OnboardingStep = .welcome
     @State private var firstName = ""
     @State private var ageText = ""
-    @State private var countryOrigin = ""
+    @State private var countryOrigin = CurrentUserProfileStore.defaultCountry
     @State private var selectedInterests = Set(
         CurrentUserProfileStore.defaultInterests
     )
@@ -282,12 +282,17 @@ struct UnifiedOnboardingView: View {
                 VStack(alignment: .leading, spacing: 12) {
                     Text("Country origin")
                         .font(.headline).foregroundColor(AppColors.primaryText)
-                    TextField("Indonesia", text: $countryOrigin)
-                        .textInputAutocapitalization(.words)
-                        .padding()
-                        .background(AppColors.textFieldBackground)
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
-                        .overlay(RoundedRectangle(cornerRadius: 12).stroke(AppColors.textFieldBorder, lineWidth: 1))
+
+                    Picker(selection: $countryOrigin) {
+                        ForEach(CurrentUserProfileStore.availableCountries) { country in
+                            Text("\(country.flag) \(country.name)")
+                                .tag(country.name)
+                        }
+                    } label: {
+                        countryPickerLabel
+                    }
+                    .pickerStyle(.menu)
+                    .tint(AppColors.primaryText)
                 }
 
                 onboardingChoiceSection(
@@ -546,6 +551,36 @@ struct UnifiedOnboardingView: View {
         guard let age = Int(ageText.trimmingCharacters(in: .whitespacesAndNewlines)),
               (13...100).contains(age) else { return nil }
         return age
+    }
+
+    private var selectedCountryOption: CurrentUserProfileStore.CountryOption? {
+        CurrentUserProfileStore.countryOption(named: countryOrigin)
+    }
+
+    private var countryPickerLabel: some View {
+        HStack(spacing: 10) {
+            Text(selectedCountryOption?.flag ?? "🌍")
+                .font(.title3)
+
+            Text(selectedCountryOption?.name ?? "Select country")
+                .font(.body)
+                .foregroundStyle(AppColors.primaryText)
+                .lineLimit(1)
+
+            Spacer()
+
+            Image(systemName: "chevron.up.chevron.down")
+                .font(.caption)
+                .fontWeight(.bold)
+                .foregroundStyle(AppColors.secondaryText)
+        }
+        .padding()
+        .background(AppColors.textFieldBackground)
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(AppColors.textFieldBorder, lineWidth: 1)
+        )
     }
 
     private var isProfileDetailsReady: Bool {

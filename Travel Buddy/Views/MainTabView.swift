@@ -43,18 +43,26 @@ struct MainTabView: View {
                 case .messages:
                     MessagesView(chatPath: $messagePath)
                 case .explore:
-                    MainMapView()
+                    MainMapView(onOpenChat: openMessageRoom)
                 case .profile:
                     ProfileView()
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
 
-            MainTabBar(selectedTab: $selectedTab)
-                .padding(.horizontal, 48)
-                .padding(.bottom, 16)
+            if showsTabBar {
+                MainTabBar(selectedTab: $selectedTab)
+                    .padding(.horizontal, 48)
+                    .padding(.bottom, 16)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
         }
         .ignoresSafeArea(.keyboard)
+        .animation(.easeInOut(duration: 0.22), value: showsTabBar)
+    }
+
+    private var showsTabBar: Bool {
+        selectedTab != .messages || messagePath.isEmpty
     }
 
     private func openMessageRoom(_ groupID: UUID) {

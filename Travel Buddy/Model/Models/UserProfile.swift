@@ -24,6 +24,14 @@ extension UserProfile {
 }
 
 enum CurrentUserProfileStore {
+    struct CountryOption: Identifiable, Hashable {
+        let code: String
+        let name: String
+
+        var id: String { code }
+        var flag: String { CountryMetadata.flag(forRegionCode: code) }
+    }
+
     static let availableInterests = [
         "Travel",
         "Food",
@@ -51,6 +59,22 @@ enum CurrentUserProfileStore {
 
     static let defaultInterests = ["Food", "Nature", "Travel"]
     static let defaultLanguages = ["English"]
+    static let defaultCountry = "Indonesia"
+
+    static let availableCountries: [CountryOption] = {
+        let locale = Locale.current
+        return Locale.Region.isoRegions
+            .compactMap { region -> CountryOption? in
+                let code = region.identifier.uppercased()
+                guard let name = locale.localizedString(forRegionCode: code) else {
+                    return nil
+                }
+                return CountryOption(code: code, name: name)
+            }
+            .sorted {
+                $0.name.localizedCompare($1.name) == .orderedAscending
+            }
+    }()
 
     private enum Keys {
         static let name = "userName"
@@ -65,7 +89,7 @@ enum CurrentUserProfileStore {
         let defaults = UserDefaults.standard
         let name = clean(defaults.string(forKey: Keys.name)) ?? "You"
         let age = defaults.integer(forKey: Keys.age)
-        let country = clean(defaults.string(forKey: Keys.country)) ?? "Indonesia"
+        let country = clean(defaults.string(forKey: Keys.country)) ?? defaultCountry
         let interests = decodedArray(
             defaults.string(forKey: Keys.interests),
             fallback: defaultInterests
@@ -102,7 +126,7 @@ enum CurrentUserProfileStore {
         let defaults = UserDefaults.standard
         defaults.set(clean(name) ?? "You", forKey: Keys.name)
         defaults.set(age, forKey: Keys.age)
-        defaults.set(clean(country) ?? "Indonesia", forKey: Keys.country)
+        defaults.set(clean(country) ?? defaultCountry, forKey: Keys.country)
         defaults.set(encodedArray(cleanedList(interests)), forKey: Keys.interests)
         defaults.set(encodedArray(cleanedList(languages)), forKey: Keys.languages)
         ensureMemberSince()
@@ -170,10 +194,24 @@ enum CurrentUserProfileStore {
         let cleaned = cleanedList(decoded)
         return cleaned.isEmpty ? fallback : cleaned
     }
+
+    static func countryOption(named country: String) -> CountryOption? {
+        let cleanedCountry = country.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !cleanedCountry.isEmpty else { return nil }
+
+        return availableCountries.first {
+            $0.name.caseInsensitiveCompare(cleanedCountry) == .orderedSame
+                || $0.code.caseInsensitiveCompare(cleanedCountry) == .orderedSame
+        }
+    }
 }
 
 private enum CountryMetadata {
     static func flag(for country: String) -> String {
+        if let option = CurrentUserProfileStore.countryOption(named: country) {
+            return flag(forRegionCode: option.code)
+        }
+
         switch country.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() {
         case "indonesia": return "🇮🇩"
         case "malaysia": return "🇲🇾"
@@ -202,8 +240,21 @@ private enum CountryMetadata {
         case "france": return "FRA"
         case "spain": return "ESP"
         default:
+            if let option = CurrentUserProfileStore.countryOption(named: country) {
+                return option.code
+            }
             return String(country.prefix(3)).uppercased()
         }
+    }
+
+    static func flag(forRegionCode code: String) -> String {
+        let base: UInt32 = 127397
+        let scalars = code.uppercased().unicodeScalars
+        guard scalars.count == 2 else { return "🌍" }
+
+        let flagScalars = scalars.compactMap { UnicodeScalar(base + $0.value) }
+        guard flagScalars.count == 2 else { return "🌍" }
+        return String(String.UnicodeScalarView(flagScalars))
     }
 }
 
