@@ -21,9 +21,9 @@ struct ProfileDetailView: View {
                     Button(action: { dismiss() }) {
                         Image(systemName: "xmark")
                             .font(.system(size: 16, weight: .semibold))
-                            .foregroundStyle(.white)
+                            .foregroundStyle(AppColors.textOnAccent)
                             .frame(width: 32, height: 32)
-                            .background(Color.white.opacity(0.2))
+                            .background(AppColors.textOnAccent.opacity(0.2))
                             .clipShape(Circle())
                     }
                     
@@ -39,7 +39,7 @@ struct ProfileDetailView: View {
                         // Profile Image
                         ZStack {
                             Circle()
-                                .fill(Color.white)
+                                .fill(AppColors.textOnAccent)
                                 .frame(width: 140, height: 140)
                             
                             Image(systemName: profile.profileImageName)
@@ -52,25 +52,25 @@ struct ProfileDetailView: View {
                             HStack(spacing: 4) {
                                 Text(displayUsername)
                                     .font(.system(size: 28, weight: .bold))
-                                    .foregroundStyle(.white)
+                                    .foregroundStyle(AppColors.textOnAccent)
                                 
                                 Text("· \(profile.age)")
                                     .font(.system(size: 24, weight: .semibold))
-                                    .foregroundStyle(.white.opacity(0.8))
+                                    .foregroundStyle(AppColors.textOnAccent.opacity(0.8))
                             }
 
                             Text(profile.realName)
                                 .font(.system(size: 15, weight: .medium))
-                                .foregroundStyle(.white.opacity(0.78))
+                                .foregroundStyle(AppColors.textOnAccent.opacity(0.78))
                         }
                         
                         // Favorite button
                         Button(action: { isFavorite.toggle() }) {
                             Image(systemName: isFavorite ? "heart.fill" : "heart")
                                 .font(.system(size: 24))
-                                .foregroundStyle(isFavorite ? .red : .white)
+                                .foregroundStyle(isFavorite ? AppColors.destructive : AppColors.textOnAccent)
                                 .frame(width: 50, height: 50)
-                                .background(Color.white.opacity(0.15))
+                                .background(AppColors.textOnAccent.opacity(0.15))
                                 .clipShape(Circle())
                         }
                         
@@ -79,7 +79,7 @@ struct ProfileDetailView: View {
                             Text("Interests")
                                 .font(.headline)
                                 .fontWeight(.bold)
-                                .foregroundStyle(.white)
+                                .foregroundStyle(AppColors.textOnAccent)
                             
                             HStack(spacing: 10) {
                                 ForEach(profile.interests, id: \.self) { interest in
@@ -89,7 +89,7 @@ struct ProfileDetailView: View {
                                         .padding(.horizontal, 12)
                                         .padding(.vertical, 8)
                                         .background(AppColors.accent.opacity(0.3))
-                                        .foregroundStyle(.white)
+                                        .foregroundStyle(AppColors.textOnAccent)
                                         .cornerRadius(12)
                                 }
                             }
@@ -101,7 +101,7 @@ struct ProfileDetailView: View {
                             Text("Countries")
                                 .font(.headline)
                                 .fontWeight(.bold)
-                                .foregroundStyle(.white)
+                                .foregroundStyle(AppColors.textOnAccent)
                             
                             HStack(spacing: 10) {
                                 ForEach(profile.languages, id: \.self) { language in
@@ -111,7 +111,7 @@ struct ProfileDetailView: View {
                                         .padding(.horizontal, 12)
                                         .padding(.vertical, 8)
                                         .background(AppColors.accent.opacity(0.3))
-                                        .foregroundStyle(.white)
+                                        .foregroundStyle(AppColors.textOnAccent)
                                         .cornerRadius(12)
                                 }
                             }
@@ -132,7 +132,7 @@ struct ProfileDetailView: View {
                         .foregroundStyle(AppColors.primaryText)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 14)
-                        .background(Color.white)
+                        .background(AppColors.textOnAccent)
                         .cornerRadius(12)
                 }
                 .padding(20)

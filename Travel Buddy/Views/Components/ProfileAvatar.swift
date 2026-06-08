@@ -20,8 +20,8 @@ struct ProfileAvatar: View {
         avatarContent
             .frame(width: size, height: size)
             .clipShape(shape)
-            .overlay { shape.stroke(Color.white, lineWidth: 1) }
-            .shadow(color: .black.opacity(0.1), radius: 12, x: 0, y: 8)
+            .overlay { shape.stroke(AppColors.textOnAccent, lineWidth: 1) }
+            .shadow(color: AppColors.scrim.opacity(0.1), radius: 12, x: 0, y: 8)
     }
 
     @ViewBuilder

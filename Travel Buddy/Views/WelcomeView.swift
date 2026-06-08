@@ -13,7 +13,7 @@ struct WelcomeView: View {
 
     var body: some View {
         ZStack {
-            Color.black.ignoresSafeArea()
+            AppColors.scrim.ignoresSafeArea()
 
             GlobeRepresentable()
                 .ignoresSafeArea()
@@ -24,11 +24,11 @@ struct WelcomeView: View {
                 Text("Welcome to VV!")
                     .font(.title)
                     .fontWeight(.bold)
-                    .foregroundColor(.white)
+                    .foregroundColor(AppColors.textOnAccent)
 
                 Text("Recommendations and friends\nbased on your preference.")
                     .font(.subheadline)
-                    .foregroundColor(.white.opacity(0.7))
+                    .foregroundColor(AppColors.textOnAccent.opacity(0.7))
                     .multilineTextAlignment(.center)
 
                 Button(action: {
@@ -39,7 +39,7 @@ struct WelcomeView: View {
                         .frame(maxWidth: .infinity)
                         .padding()
                         .background(AppColors.accent)
-                        .foregroundColor(.white)
+                        .foregroundColor(AppColors.textOnAccent)
                         .clipShape(Capsule())
                 }
                 .padding(.horizontal, 32)

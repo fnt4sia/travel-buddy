@@ -14,9 +14,9 @@ struct ThumbnailAnnotationView: View {
         VStack(spacing: 0) {
             ZStack {
                 RoundedRectangle(cornerRadius: 10)
-                    .fill(Color.white)
+                    .fill(AppColors.textOnAccent)
                     .shadow(
-                        color: .black.opacity(isSelected ? 0.35 : 0.2),
+                        color: AppColors.scrim.opacity(isSelected ? 0.35 : 0.2),
                         radius: isSelected ? 8 : 4,
                         x: 0,
                         y: 2
@@ -34,9 +34,9 @@ struct ThumbnailAnnotationView: View {
             )
 
             Triangle()
-                .fill(Color.white)
+                .fill(AppColors.textOnAccent)
                 .frame(width: 14, height: 8)
-                .shadow(color: .black.opacity(0.1), radius: 2, x: 0, y: 1)
+                .shadow(color: AppColors.scrim.opacity(0.1), radius: 2, x: 0, y: 1)
         }
     }
 
@@ -117,7 +117,7 @@ struct PlaceDetailSheet: View {
         ZStack {
             VStack(spacing: 0) {
                 Capsule()
-                    .fill(Color(UIColor.separator))
+                    .fill(AppColors.divider)
                     .frame(width: 36, height: 4)
                     .frame(maxWidth: .infinity)
                     .padding(.top, 10)
@@ -152,11 +152,11 @@ struct PlaceDetailSheet: View {
                         }
                 }
             }
-            .background(Color(UIColor.systemBackground))
+            .background(AppColors.canvas)
 
             // Full-screen confirmation popup
             if let pending = pendingConfirmation {
-                Color.black.opacity(0.4)
+                AppColors.scrim.opacity(0.4)
                     .ignoresSafeArea()
                     .transition(.opacity)
 
@@ -277,7 +277,7 @@ struct PlaceDetailSheet: View {
                     image.resizable().scaledToFill()
                 } placeholder: {
                     ZStack {
-                        Color(UIColor.secondarySystemBackground)
+                        AppColors.fieldSurface
                         Image(systemName: "photo")
                             .font(.largeTitle)
                             .foregroundStyle(AppColors.accent)
@@ -325,7 +325,7 @@ struct PlaceDetailSheet: View {
                             }
                             .padding(.horizontal, 12)
                             .padding(.vertical, 10)
-                            .background(Color(UIColor.secondarySystemBackground))
+                            .background(AppColors.fieldSurface)
                             .cornerRadius(8)
                         }
 
@@ -339,7 +339,7 @@ struct PlaceDetailSheet: View {
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 10)
                             .background(AppColors.accent)
-                            .foregroundStyle(.white)
+                            .foregroundStyle(AppColors.textOnAccent)
                             .cornerRadius(8)
                         }
                     }
@@ -437,8 +437,8 @@ struct FilterMenuView: View {
         }
         .background(
             RoundedRectangle(cornerRadius: 14)
-                .fill(Color(UIColor.systemBackground))
-                .shadow(color: .black.opacity(0.18), radius: 16, x: 0, y: 4)
+                .fill(AppColors.canvas)
+                .shadow(color: AppColors.scrim.opacity(0.18), radius: 16, x: 0, y: 4)
         )
         .frame(width: 180)
     }
@@ -495,7 +495,7 @@ struct MainMapView: View {
             }
 
             if showFilterMenu {
-                Color.black.opacity(0.001)
+                AppColors.scrim.opacity(0.001)
                     .ignoresSafeArea()
                     .contentShape(Rectangle())
                     .onTapGesture {
@@ -579,10 +579,10 @@ struct MainMapView: View {
             } label: {
                 ZStack {
                     Circle()
-                        .fill(Color(UIColor.systemBackground).opacity(0.9))
+                        .fill(AppColors.canvas.opacity(0.9))
                         .frame(width: 40, height: 40)
                         .shadow(
-                            color: .black.opacity(0.12),
+                            color: AppColors.scrim.opacity(0.12),
                             radius: 6,
                             x: 0,
                             y: 2
@@ -609,7 +609,7 @@ struct MainMapView: View {
         .padding(.top, 12)
         .padding(.bottom, 14)
         .background(
-            Color(UIColor.systemBackground)
+            AppColors.canvas
                 .opacity(0.88)
                 .background(.ultraThinMaterial)
                 .ignoresSafeArea(edges: .top)
@@ -626,10 +626,10 @@ struct MainMapView: View {
         .padding(.horizontal, 14)
         .padding(.vertical, 8)
         .background(
-            Color(UIColor.systemBackground).opacity(0.95),
+            AppColors.canvas.opacity(0.95),
             in: Capsule()
         )
-        .shadow(color: .black.opacity(0.1), radius: 6, x: 0, y: 2)
+        .shadow(color: AppColors.scrim.opacity(0.1), radius: 6, x: 0, y: 2)
         .padding(.top, 12)
     }
 
@@ -640,10 +640,10 @@ struct MainMapView: View {
             .padding(.horizontal, 14)
             .padding(.vertical, 8)
             .background(
-                Color(UIColor.systemBackground).opacity(0.95),
+                AppColors.canvas.opacity(0.95),
                 in: Capsule()
             )
-            .shadow(color: .black.opacity(0.1), radius: 6, x: 0, y: 2)
+            .shadow(color: AppColors.scrim.opacity(0.1), radius: 6, x: 0, y: 2)
             .padding(.top, 12)
     }
 
@@ -653,9 +653,9 @@ struct MainMapView: View {
         } label: {
             ZStack {
                 Circle()
-                    .fill(Color(UIColor.systemBackground).opacity(0.95))
+                    .fill(AppColors.canvas.opacity(0.95))
                     .frame(width: 44, height: 44)
-                    .shadow(color: .black.opacity(0.15), radius: 6, x: 0, y: 2)
+                    .shadow(color: AppColors.scrim.opacity(0.15), radius: 6, x: 0, y: 2)
                 Image(systemName: "location.fill")
                     .font(.system(size: 17, weight: .medium))
                     .foregroundStyle(AppColors.accent)

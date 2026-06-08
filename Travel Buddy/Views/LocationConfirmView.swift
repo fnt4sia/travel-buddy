@@ -28,7 +28,7 @@ struct LocationConfirmView: View {
             .frame(maxWidth: .infinity)
             .padding()
             .background(AppColors.accent)
-            .foregroundColor(.white)
+            .foregroundColor(AppColors.textOnAccent)
             .clipShape(Capsule())
             .padding(.horizontal)
             Spacer()

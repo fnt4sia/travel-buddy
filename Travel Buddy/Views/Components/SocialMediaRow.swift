@@ -38,7 +38,7 @@ struct SocialMediaRow: View {
             } else {
                 Image(systemName: platform.fallbackSymbol)
                     .font(.system(size: 13, weight: .bold))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(AppColors.textOnAccent)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .background(platform.badgeBackground)
             }

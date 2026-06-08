@@ -84,7 +84,7 @@ struct ActivityGroupsView: View {
 
             Spacer()
         }
-        .background(Color(UIColor.systemBackground))
+        .background(AppColors.canvas)
         .onAppear { viewModel.refreshAvailableGroups() }
         .sheet(isPresented: $showDatePicker) {
             DatePickerSheetContent(
@@ -162,7 +162,7 @@ struct ActivityGroupsView: View {
     @ViewBuilder
     private var confirmationOverlay: some View {
         if let pending = pendingConfirmation {
-            Color.black.opacity(0.4)
+            AppColors.scrim.opacity(0.4)
                 .ignoresSafeArea()
                 .transition(.opacity)
 
@@ -228,7 +228,7 @@ struct ActivityGroupsView: View {
                     }
                     .padding(.horizontal, 12)
                     .padding(.vertical, 10)
-                    .background(Color(UIColor.secondarySystemBackground))
+                    .background(AppColors.fieldSurface)
                     .cornerRadius(8)
                 }
 
@@ -242,7 +242,7 @@ struct ActivityGroupsView: View {
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 10)
                     .background(AppColors.accent)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(AppColors.textOnAccent)
                     .cornerRadius(8)
                 }
             }
@@ -338,7 +338,7 @@ struct GroupRowView: View {
             RoundedRectangle(cornerRadius: 16, style: .continuous)
                 .stroke(AppColors.cardBorder, lineWidth: 1)
         )
-        .shadow(color: .black.opacity(0.035), radius: 8, x: 0, y: 4)
+        .shadow(color: AppColors.scrim.opacity(0.035), radius: 8, x: 0, y: 4)
         .contentShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
         .onTapGesture { onCardTapped() }
     }
@@ -412,7 +412,7 @@ struct GroupRowView: View {
     }
 
     private var actionBackground: Color {
-        if hasJoined { return Color.red.opacity(0.9) }
+        if hasJoined { return AppColors.destructive.opacity(0.9) }
         if group.isFull { return Color.gray.opacity(0.28) }
         return AppColors.accent
     }
@@ -435,7 +435,7 @@ struct GroupRowView: View {
 
     private var statusBackground: Color {
         if hasJoined { return AppColors.joinedStatusSurface }
-        if group.isFull { return Color(UIColor.systemGray5) }
+        if group.isFull { return AppColors.disabledSurface }
         return AppColors.accentSurface
     }
 
@@ -463,7 +463,7 @@ struct GroupRowView: View {
                     Text(firstInitial(for: member.name))
                         .font(.caption2)
                         .fontWeight(.bold)
-                        .foregroundStyle(.white)
+                        .foregroundStyle(AppColors.textOnAccent)
                 )
         }
         .buttonStyle(.plain)
@@ -508,7 +508,7 @@ struct LeaveGroupConfirmationView: View {
     var body: some View {
         ZStack {
             LinearGradient(
-                gradient: Gradient(colors: [Color.red, Color.red.opacity(0.8)]),
+                gradient: Gradient(colors: [AppColors.destructive, AppColors.destructive.opacity(0.8)]),
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             )
@@ -520,22 +520,22 @@ struct LeaveGroupConfirmationView: View {
                 VStack(spacing: 24) {
                     ZStack {
                         Circle()
-                            .fill(Color.white.opacity(0.2))
+                            .fill(AppColors.textOnAccent.opacity(0.2))
                             .frame(width: 80, height: 80)
                             .offset(x: -60, y: -40)
 
                         Circle()
-                            .fill(Color.white.opacity(0.2))
+                            .fill(AppColors.textOnAccent.opacity(0.2))
                             .frame(width: 60, height: 60)
                             .offset(x: 70, y: 50)
 
                         Circle()
-                            .fill(.white)
+                            .fill(AppColors.textOnAccent)
                             .frame(width: 100, height: 100)
                             .overlay(
                                 Image(systemName: "person.crop.circle.badge.minus")
                                     .font(.system(size: 42, weight: .bold))
-                                    .foregroundStyle(.red)
+                                    .foregroundStyle(AppColors.destructive)
                             )
                     }
                     .frame(height: 180)
@@ -544,11 +544,11 @@ struct LeaveGroupConfirmationView: View {
                         Text("You left the group")
                             .font(.title2)
                             .fontWeight(.bold)
-                            .foregroundStyle(.white)
+                            .foregroundStyle(AppColors.textOnAccent)
 
                         Text("Your reservation has been cancelled and you have been removed from the attendee list.")
                             .multilineTextAlignment(.center)
-                            .foregroundStyle(.white.opacity(0.9))
+                            .foregroundStyle(AppColors.textOnAccent.opacity(0.9))
                     }
                     .padding(.horizontal)
                 }
@@ -561,8 +561,8 @@ struct LeaveGroupConfirmationView: View {
                         .fontWeight(.semibold)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 14)
-                        .background(.white)
-                        .foregroundStyle(.red)
+                        .background(AppColors.textOnAccent)
+                        .foregroundStyle(AppColors.destructive)
                         .cornerRadius(12)
                 }
                 .padding(.horizontal, 20)
@@ -600,7 +600,7 @@ struct GroupActionConfirmationPopup: View {
                         .fontWeight(.semibold)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 14)
-                        .background(Color(UIColor.systemGray5))
+                        .background(AppColors.disabledSurface)
                         .foregroundStyle(AppColors.primaryText)
                         .clipShape(Capsule())
                 }
@@ -612,16 +612,16 @@ struct GroupActionConfirmationPopup: View {
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 14)
                         .background(AppColors.accent)
-                        .foregroundStyle(.white)
+                        .foregroundStyle(AppColors.textOnAccent)
                         .clipShape(Capsule())
                 }
             }
         }
         .padding(20)
         .frame(maxWidth: 340)
-        .background(Color(UIColor.systemBackground))
+        .background(AppColors.canvas)
         .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
-        .shadow(color: .black.opacity(0.25), radius: 20, x: 0, y: 12)
+        .shadow(color: AppColors.scrim.opacity(0.25), radius: 20, x: 0, y: 12)
         .padding(.horizontal, 20)
     }
 }
@@ -695,7 +695,7 @@ struct CreateMeetupSheet: View {
                 }
                 .padding(20)
             }
-            .background(Color(UIColor.systemBackground))
+            .background(AppColors.canvas)
             .navigationTitle("Create Meetup")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -736,7 +736,7 @@ struct CreateMeetupSheet: View {
                 .textInputAutocapitalization(.words)
                 .padding(.horizontal, 12)
                 .padding(.vertical, 12)
-                .background(Color(UIColor.secondarySystemBackground))
+                .background(AppColors.fieldSurface)
                 .clipShape(RoundedRectangle(cornerRadius: 8))
         }
     }
@@ -752,7 +752,7 @@ struct CreateMeetupSheet: View {
                 .frame(minHeight: 92)
                 .padding(8)
                 .scrollContentBackground(.hidden)
-                .background(Color(UIColor.secondarySystemBackground))
+                .background(AppColors.fieldSurface)
                 .clipShape(RoundedRectangle(cornerRadius: 8))
                 .overlay(alignment: .topLeading) {
                     if trimmed(description).isEmpty {
@@ -866,7 +866,7 @@ struct GroupDetailView: View {
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 14)
                             .background(AppColors.accent)
-                            .foregroundStyle(.white)
+                            .foregroundStyle(AppColors.textOnAccent)
                             .clipShape(Capsule())
 
                         Button("Leave Meetup") {
@@ -876,8 +876,8 @@ struct GroupDetailView: View {
                         .fontWeight(.bold)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 14)
-                        .background(Color.red.opacity(0.12))
-                        .foregroundStyle(.red)
+                        .background(AppColors.destructive.opacity(0.12))
+                        .foregroundStyle(AppColors.destructive)
                         .clipShape(Capsule())
                     } else {
                         Button(group.isFull ? "Meetup is Full" : "Join Meetup") {
@@ -889,7 +889,7 @@ struct GroupDetailView: View {
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 14)
                         .background(group.isFull ? Color.gray.opacity(0.25) : AppColors.accent)
-                        .foregroundStyle(group.isFull ? AppColors.secondaryText : .white)
+                        .foregroundStyle(group.isFull ? AppColors.secondaryText : AppColors.textOnAccent)
                         .clipShape(Capsule())
                         .disabled(group.isFull)
                     }
@@ -913,7 +913,7 @@ struct GroupDetailView: View {
                         Text(String(member.name.prefix(1)))
                             .font(.caption2)
                             .fontWeight(.bold)
-                            .foregroundStyle(.white)
+                            .foregroundStyle(AppColors.textOnAccent)
                     )
                 Text(member.name.split(separator: " ").first.map(String.init) ?? member.name)
                     .font(.callout)
@@ -926,8 +926,8 @@ struct GroupDetailView: View {
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
             .frame(maxWidth: .infinity, minHeight: 36, alignment: .leading)
-            .background(Color(UIColor.systemGray5))
-            .overlay(Capsule().stroke(Color(UIColor.systemGray3), lineWidth: 1.5))
+            .background(AppColors.disabledSurface)
+            .overlay(Capsule().stroke(AppColors.disabledStroke, lineWidth: 1.5))
             .clipShape(Capsule())
             .onTapGesture { onMemberTapped?(member) }
         }
@@ -957,7 +957,7 @@ struct DatePickerSheetContent: View {
     var body: some View {
         VStack(spacing: 12) {
             Capsule()
-                .fill(Color(UIColor.separator))
+                .fill(AppColors.divider)
                 .frame(width: 36, height: 4)
                 .padding(.top, 8)
 
@@ -978,12 +978,12 @@ struct DatePickerSheetContent: View {
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 12)
                     .background(AppColors.accent)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(AppColors.textOnAccent)
                     .cornerRadius(10)
             }
             .padding(16)
         }
-        .background(Color(UIColor.systemBackground))
+        .background(AppColors.canvas)
     }
 }
 
