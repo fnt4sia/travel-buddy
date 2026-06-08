@@ -125,8 +125,8 @@ class GlobeView: SCNView {
         
         let pinGeometry = SCNSphere(radius: 0.08)
         let pinMaterial = SCNMaterial()
-        pinMaterial.diffuse.contents = UIColor(red: 1.0, green: 0.0, blue: 0.0, alpha: 1)
-        pinMaterial.emission.contents = UIColor(red: 1.0, green: 0.0, blue: 0.0, alpha: 1)
+        pinMaterial.diffuse.contents = AppColors.globePin
+        pinMaterial.emission.contents = AppColors.globePin
         pinMaterial.shininess = 1.0
         pinGeometry.materials = [pinMaterial]
         

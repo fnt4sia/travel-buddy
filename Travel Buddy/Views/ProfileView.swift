@@ -63,7 +63,7 @@ struct ProfileView: View {
                     )
                     .overlay(
                         RoundedRectangle(cornerRadius: ProfileMetrics.Avatar.cornerRadius, style: .continuous)
-                            .stroke(.white.opacity(0.7), lineWidth: 2)
+                            .stroke(AppColors.textOnAccent.opacity(0.7), lineWidth: 2)
                     )
 
                     if canEdit {
@@ -91,7 +91,7 @@ struct ProfileView: View {
                 HStack(alignment: .center, spacing: 8) {
                     Text(displayUsername)
                         .font(.system(size: 30, weight: .bold))
-                        .foregroundStyle(.white)
+                        .foregroundStyle(AppColors.textOnAccent)
                         .lineLimit(2)
                         .minimumScaleFactor(0.72)
                     
@@ -100,12 +100,12 @@ struct ProfileView: View {
                         .foregroundStyle(AppColors.brandPrimary)
                         .padding(.horizontal, 9)
                         .padding(.vertical, 6)
-                        .background(.white, in: Capsule())
+                        .background(AppColors.textOnAccent, in: Capsule())
                 }
 
                 Text(viewModel.profile.realName)
                     .font(.system(size: 16, weight: .medium))
-                    .foregroundStyle(.white.opacity(0.85))
+                    .foregroundStyle(AppColors.textOnAccent.opacity(0.85))
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
@@ -121,7 +121,7 @@ struct ProfileView: View {
         )
         .overlay(
             RoundedRectangle(cornerRadius: 26, style: .continuous)
-                .stroke(.white.opacity(0.18), lineWidth: 1)
+                .stroke(AppColors.textOnAccent.opacity(0.18), lineWidth: 1)
         )
         .shadow(color: AppColors.brandPrimary.opacity(0.20), radius: 18, x: 0, y: 10)
     }
@@ -150,14 +150,14 @@ struct ProfileView: View {
                 .font(.system(size: 24))
             Text(viewModel.profile.countryCode)
                 .font(.system(size: 12, weight: .bold))
-                .foregroundStyle(.white)
+                .foregroundStyle(AppColors.textOnAccent)
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 10)
-        .background(.white.opacity(0.14), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .background(AppColors.textOnAccent.opacity(0.14), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .stroke(.white.opacity(0.20), lineWidth: 1)
+                .stroke(AppColors.textOnAccent.opacity(0.20), lineWidth: 1)
         )
     }
 
@@ -351,9 +351,9 @@ private struct EditPencil: View {
                 .font(.system(size: 13, weight: .bold))
                 .foregroundStyle(AppColors.brandPrimary)
                 .frame(width: 30, height: 30)
-                .background(onLight ? AnyShapeStyle(Color.white) : AnyShapeStyle(AppColors.accentSurface), in: Circle())
-                .overlay(Circle().stroke(onLight ? Color.white.opacity(0.7) : AppColors.cardBorder, lineWidth: 1))
-                .shadow(color: .black.opacity(onLight ? 0.18 : 0), radius: 4, x: 0, y: 2)
+                .background(onLight ? AnyShapeStyle(AppColors.textOnAccent) : AnyShapeStyle(AppColors.accentSurface), in: Circle())
+                .overlay(Circle().stroke(onLight ? AppColors.textOnAccent.opacity(0.7) : AppColors.cardBorder, lineWidth: 1))
+                .shadow(color: AppColors.scrim.opacity(onLight ? 0.18 : 0), radius: 4, x: 0, y: 2)
         }
         .buttonStyle(.plain)
         .accessibilityLabel("Edit \(label)")
@@ -804,7 +804,7 @@ private struct ProfilePhotoEditorSheet: View {
                             Image(systemName: "photo").font(.system(size: 15, weight: .bold))
                             Text(isLoading ? "Loading…" : "Choose photo").font(.system(size: 16, weight: .semibold))
                         }
-                        .foregroundStyle(.white)
+                        .foregroundStyle(AppColors.textOnAccent)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 13)
                         .background(AppColors.brandPrimary, in: Capsule())
@@ -818,7 +818,7 @@ private struct ProfilePhotoEditorSheet: View {
                         } label: {
                             Text("Remove photo")
                                 .font(.system(size: 16, weight: .semibold))
-                                .foregroundStyle(.red)
+                                .foregroundStyle(AppColors.destructive)
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 13)
                                 .background(AppColors.accentSurface, in: Capsule())
@@ -872,7 +872,7 @@ private struct GalleryEditorSheet: View {
                         Image(systemName: "plus").font(.system(size: 14, weight: .bold))
                         Text(isLoading ? "Adding…" : "Add photos").font(.system(size: 15, weight: .semibold))
                     }
-                    .foregroundStyle(.white)
+                    .foregroundStyle(AppColors.textOnAccent)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 12)
                     .background(AppColors.brandPrimary, in: Capsule())
@@ -921,9 +921,9 @@ private struct GalleryEditorSheet: View {
             } label: {
                 Image(systemName: "xmark")
                     .font(.system(size: 11, weight: .bold))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(AppColors.textOnAccent)
                     .frame(width: 24, height: 24)
-                    .background(.black.opacity(0.55), in: Circle())
+                    .background(AppColors.scrim.opacity(0.55), in: Circle())
             }
             .buttonStyle(.plain)
             .padding(6)

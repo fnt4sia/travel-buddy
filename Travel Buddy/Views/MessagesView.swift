@@ -34,7 +34,7 @@ struct MessagesView: View {
                 .padding(.horizontal, 26)
                 .padding(.bottom, 120)
             }
-            .background(Color.white)
+            .background(AppColors.textOnAccent)
             .navigationDestination(for: UUID.self) { groupID in
                 GroupChatView(groupID: groupID, showsCloseButton: false)
             }
@@ -78,25 +78,25 @@ private struct ConversationRow: View {
                 HStack(alignment: .firstTextBaseline, spacing: 5) {
                     Text(group.name)
                         .font(.system(size: 21, weight: .bold))
-                        .foregroundColor(.black)
+                        .foregroundColor(AppColors.scrim)
                         .lineLimit(1)
                         .minimumScaleFactor(0.82)
 
                     Text("• \(dateText)")
                         .font(.system(size: 14, weight: .semibold))
-                        .foregroundColor(.black.opacity(0.34))
+                        .foregroundColor(AppColors.scrim.opacity(0.34))
                         .lineLimit(1)
                 }
 
                 Text(previewText)
                     .font(.system(size: 16))
-                    .foregroundColor(.black.opacity(0.34))
+                    .foregroundColor(AppColors.scrim.opacity(0.34))
                     .lineLimit(2)
             }
             .padding(.bottom, 14)
             .overlay(alignment: .bottom) {
                 Rectangle()
-                    .fill(Color.black.opacity(0.1))
+                    .fill(AppColors.scrim.opacity(0.1))
                     .frame(height: 1)
             }
         }
@@ -144,7 +144,7 @@ struct GroupChatView: View {
                 missingRoom
             }
         }
-        .background(Color.white)
+        .background(AppColors.textOnAccent)
         .sheet(item: $selectedProfile) { profile in
             ProfileDetailView(profile: profile)
                 .presentationDetents([.large])
@@ -161,7 +161,7 @@ struct GroupChatView: View {
                             .font(.system(size: 14, weight: .bold))
                             .foregroundStyle(AppColors.primaryText)
                             .frame(width: 32, height: 32)
-                            .background(Color(UIColor.secondarySystemBackground))
+                            .background(AppColors.fieldSurface)
                             .clipShape(Circle())
                     }
                 }
@@ -203,7 +203,7 @@ struct GroupChatView: View {
                             }
                             .padding(.horizontal, 10)
                             .padding(.vertical, 7)
-                            .background(Color(UIColor.secondarySystemBackground))
+                            .background(AppColors.fieldSurface)
                             .clipShape(Capsule())
                         }
                         .buttonStyle(.plain)
@@ -254,13 +254,13 @@ struct GroupChatView: View {
                 .lineLimit(1...4)
                 .padding(.horizontal, 14)
                 .padding(.vertical, 11)
-                .background(Color(UIColor.secondarySystemBackground))
+                .background(AppColors.fieldSurface)
                 .clipShape(RoundedRectangle(cornerRadius: 8))
 
             Button(action: sendMessage) {
                 Image(systemName: "paperplane.fill")
                     .font(.system(size: 16, weight: .bold))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(AppColors.textOnAccent)
                     .frame(width: 42, height: 42)
                     .background(canSend ? AppColors.accent : Color.gray.opacity(0.35))
                     .clipShape(Circle())
@@ -269,7 +269,7 @@ struct GroupChatView: View {
         }
         .padding(.horizontal, 18)
         .padding(.vertical, 12)
-        .background(Color.white)
+        .background(AppColors.textOnAccent)
     }
 
     private var missingRoom: some View {
@@ -375,7 +375,7 @@ private struct ChatBubble: View {
                     .background(
                         isCurrentUser
                             ? AppColors.accent
-                            : Color(UIColor.secondarySystemBackground)
+                            : AppColors.fieldSurface
                     )
                     .clipShape(
                         RoundedRectangle(cornerRadius: 8, style: .continuous)
@@ -427,11 +427,11 @@ private struct AvatarCircle: View {
             .overlay {
                 Text(initial)
                     .font(.system(size: size * 0.38, weight: .bold))
-                    .foregroundColor(.white)
+                    .foregroundColor(AppColors.textOnAccent)
             }
             .overlay {
                 Circle()
-                    .stroke(Color.white, lineWidth: size >= 40 ? 3 : 1.5)
+                    .stroke(AppColors.textOnAccent, lineWidth: size >= 40 ? 3 : 1.5)
             }
     }
 }

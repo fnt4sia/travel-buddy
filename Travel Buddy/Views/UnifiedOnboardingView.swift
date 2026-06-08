@@ -262,7 +262,7 @@ struct UnifiedOnboardingView: View {
                 Text(accountError)
                     .font(.caption)
                     .fontWeight(.medium)
-                    .foregroundStyle(.red)
+                    .foregroundStyle(AppColors.destructive)
                     .fixedSize(horizontal: false, vertical: true)
             }
 
@@ -272,7 +272,7 @@ struct UnifiedOnboardingView: View {
                     .frame(maxWidth: .infinity)
                     .padding()
                     .background(isAccountReady ? AppColors.accent : AppColors.accentDisabled)
-                    .foregroundColor(.white)
+                    .foregroundColor(AppColors.textOnAccent)
                     .clipShape(Capsule())
             }
             .disabled(!isAccountReady)
@@ -341,7 +341,7 @@ struct UnifiedOnboardingView: View {
                         .frame(maxWidth: .infinity)
                         .padding()
                         .background(isProfileDetailsReady ? AppColors.accent : AppColors.accentDisabled)
-                        .foregroundColor(.white)
+                        .foregroundColor(AppColors.textOnAccent)
                         .clipShape(Capsule())
                 }
                 .disabled(!isProfileDetailsReady || isSavingProfile)
@@ -365,7 +365,7 @@ struct UnifiedOnboardingView: View {
                     .frame(maxWidth: .infinity)
                     .padding()
                     .background(AppColors.accent)
-                    .foregroundColor(.white)
+                    .foregroundColor(AppColors.textOnAccent)
                     .clipShape(Capsule())
             }
             .disabled(locationViewModel.isLoading)
@@ -388,7 +388,7 @@ struct UnifiedOnboardingView: View {
                 .frame(maxWidth: .infinity)
                 .padding()
                 .background(AppColors.accent)
-                .foregroundColor(.white)
+                .foregroundColor(AppColors.textOnAccent)
                 .clipShape(Capsule())
         }
     }
@@ -414,7 +414,7 @@ struct UnifiedOnboardingView: View {
                     .frame(maxWidth: .infinity)
                     .padding()
                     .background(AppColors.accent)
-                    .foregroundColor(.white)
+                    .foregroundColor(AppColors.textOnAccent)
                     .clipShape(Capsule())
             }
         }
@@ -670,12 +670,12 @@ struct UnifiedOnboardingView: View {
                 startRadius: 200, endRadius: 300
             )
             RadialGradient(
-                colors: [Color.white.opacity(0.65), Color.white.opacity(0.25), Color.clear],
+                colors: [AppColors.textOnAccent.opacity(0.65), AppColors.textOnAccent.opacity(0.25), Color.clear],
                 center: .top, startRadius: 80, endRadius: 450
             )
             .offset(y: -180)
             RadialGradient(
-                colors: [Color.black.opacity(0.08), Color.clear],
+                colors: [AppColors.scrim.opacity(0.08), Color.clear],
                 center: .top, startRadius: 250, endRadius: 700
             )
             .offset(y: -200)
@@ -710,7 +710,7 @@ private struct OnboardingChoiceChip: View {
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
         .background(
-            isSelected ? AppColors.accent : Color(UIColor.secondarySystemBackground),
+            isSelected ? AppColors.accent : AppColors.fieldSurface,
             in: Capsule()
         )
         .overlay(Capsule().stroke(isSelected ? AppColors.accent : AppColors.textFieldBorder, lineWidth: 1))

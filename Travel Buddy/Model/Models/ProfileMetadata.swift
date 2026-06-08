@@ -106,15 +106,15 @@ enum SocialPlatform {
             return AnyShapeStyle(
                 LinearGradient(
                     colors: [
-                        Color(red: 0.96, green: 0.27, blue: 0.42),
-                        Color(red: 0.51, green: 0.23, blue: 0.78),
+                        AppColors.statGradientStart,
+                        AppColors.statGradientEnd,
                     ],
                     startPoint: .topLeading,
                     endPoint: .bottomTrailing
                 )
             )
         case .twitter:
-            return AnyShapeStyle(Color.black)
+            return AnyShapeStyle(AppColors.scrim)
         }
     }
 }

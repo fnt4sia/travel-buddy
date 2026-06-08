@@ -14,7 +14,7 @@ struct NameInputView: View {
 
     var body: some View {
         ZStack {
-            Color.white.ignoresSafeArea()
+            AppColors.textOnAccent.ignoresSafeArea()
 
             GlobeRepresentable()
                 .equatable()
@@ -25,7 +25,7 @@ struct NameInputView: View {
                 Text("Let's start your\nadventure!")
                     .font(.largeTitle)
                     .fontWeight(.bold)
-                    .foregroundColor(.black)
+                    .foregroundColor(AppColors.scrim)
                     .padding(.top, 48)
                     .padding(.horizontal, 24)
 
@@ -34,11 +34,11 @@ struct NameInputView: View {
                 VStack(alignment: .leading, spacing: 12) {
                     Text("First name")
                         .font(.headline)
-                        .foregroundColor(.black)
+                        .foregroundColor(AppColors.scrim)
 
                     TextField("How can we address you?", text: $firstName)
                         .padding()
-                        .background(Color.white)
+                        .background(AppColors.textOnAccent)
                         .clipShape(RoundedRectangle(cornerRadius: 12))
                         .overlay(
                             RoundedRectangle(cornerRadius: 12)
@@ -60,7 +60,7 @@ struct NameInputView: View {
                             .frame(maxWidth: .infinity)
                             .padding()
                             .background(firstName.isEmpty ? AppColors.accentDisabled : AppColors.accent)
-                            .foregroundColor(.white)
+                            .foregroundColor(AppColors.textOnAccent)
                             .clipShape(Capsule())
                     }
                     .disabled(firstName.isEmpty)

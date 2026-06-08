@@ -172,4 +172,34 @@ struct AppColors {
     static var pinGlow: Color {
         brandSecondary
     }
+
+    // MARK: - Semantic UI tokens
+    /// White used over brand/accent/photo backgrounds (button labels, strokes).
+    static var textOnAccent: Color { .white }
+
+    /// Destructive / leave / error.
+    static var destructive: Color { .red }
+
+    /// Dimming layer behind popups and sheets.
+    static var scrim: Color { .black }
+
+    /// Neutral filled control / field background.
+    static var fieldSurface: Color { Color(UIColor.secondarySystemBackground) }
+
+    /// Default adaptive screen background (system).
+    static var canvas: Color { Color(UIColor.systemBackground) }
+
+    /// Hairline separators / drag indicators.
+    static var divider: Color { Color(UIColor.separator) }
+
+    /// Disabled / full-state fills and strokes.
+    static var disabledSurface: Color { Color(UIColor.systemGray5) }
+    static var disabledStroke: Color { Color(UIColor.systemGray3) }
+
+    // Profile stat gradient.
+    static var statGradientStart: Color { Color(red: 0.96, green: 0.27, blue: 0.42) }
+    static var statGradientEnd: Color { Color(red: 0.51, green: 0.23, blue: 0.78) }
+
+    // SceneKit globe pin (UIColor for material contents).
+    static var globePin: UIColor { UIColor(red: 1.0, green: 0.0, blue: 0.0, alpha: 1) }
 }
