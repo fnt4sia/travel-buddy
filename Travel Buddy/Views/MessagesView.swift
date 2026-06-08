@@ -34,7 +34,7 @@ struct MessagesView: View {
                 .padding(.horizontal, 26)
                 .padding(.bottom, 120)
             }
-            .background(AppColors.textOnAccent)
+            .background(AppColors.background)
             .navigationDestination(for: UUID.self) { groupID in
                 GroupChatView(groupID: groupID, showsCloseButton: false)
             }
@@ -78,25 +78,25 @@ private struct ConversationRow: View {
                 HStack(alignment: .firstTextBaseline, spacing: 5) {
                     Text(group.name)
                         .font(.system(size: 21, weight: .bold))
-                        .foregroundColor(AppColors.scrim)
+                        .foregroundColor(AppColors.primaryText)
                         .lineLimit(1)
                         .minimumScaleFactor(0.82)
 
                     Text("• \(dateText)")
                         .font(.system(size: 14, weight: .semibold))
-                        .foregroundColor(AppColors.scrim.opacity(0.34))
+                        .foregroundColor(AppColors.primaryText.opacity(0.34))
                         .lineLimit(1)
                 }
 
                 Text(previewText)
                     .font(.system(size: 16))
-                    .foregroundColor(AppColors.scrim.opacity(0.34))
+                    .foregroundColor(AppColors.primaryText.opacity(0.38))
                     .lineLimit(2)
             }
             .padding(.bottom, 14)
             .overlay(alignment: .bottom) {
                 Rectangle()
-                    .fill(AppColors.scrim.opacity(0.1))
+                    .fill(AppColors.primaryText.opacity(0.1))
                     .frame(height: 1)
             }
         }
@@ -144,7 +144,7 @@ struct GroupChatView: View {
                 missingRoom
             }
         }
-        .background(AppColors.textOnAccent)
+        .background(AppColors.background)
         .sheet(item: $selectedProfile) { profile in
             ProfileDetailView(profile: profile)
                 .presentationDetents([.large])
@@ -269,7 +269,7 @@ struct GroupChatView: View {
         }
         .padding(.horizontal, 18)
         .padding(.vertical, 12)
-        .background(AppColors.textOnAccent)
+        .background(AppColors.background)
     }
 
     private var missingRoom: some View {

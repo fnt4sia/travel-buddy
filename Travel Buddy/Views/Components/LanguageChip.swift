@@ -15,6 +15,7 @@ struct LanguageChip: View {
             Text(LanguageFlag.emoji(for: language))
             Text(language)
                 .font(.system(size: ProfileMetrics.Font.chip, weight: .medium))
+                .foregroundStyle(AppColors.primaryText)
         }
         .foregroundStyle(AppColors.brandPrimary)
         .padding(.horizontal, 14)

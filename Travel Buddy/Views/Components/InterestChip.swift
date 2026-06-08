@@ -16,6 +16,8 @@ struct InterestChip: View {
             Text(InterestStyle.emoji(for: interest))
             Text(interest)
                 .font(.system(size: ProfileMetrics.Font.chip, weight: .medium))
+                .lineLimit(1)
+                .foregroundStyle(AppColors.primaryText)
         }
         .foregroundStyle(AppColors.brandPrimary)
         .padding(.horizontal, 14)
