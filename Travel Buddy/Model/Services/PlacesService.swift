@@ -2,11 +2,12 @@
 //  PlacesService.swift
 //  Travel Buddy
 //
-//  Place recommendations. During development this returns local fixtures for
-//  Badung and Cupertino so the app does not spend Google Places API credits.
+//  Place recommendations. Supabase rows are preferred; local fixtures keep the
+//  map usable when Supabase is not configured or has no matching data.
 
 import CoreLocation
 import Foundation
+import Supabase
 
 struct PlacesService {
     static let shared = PlacesService()
@@ -16,7 +17,8 @@ struct PlacesService {
 
     // MARK: - Public API
 
-    /// Returns up to `pickCount` hardcoded places for the closest development region.
+    /// Returns up to `pickCount` places from Supabase, falling back to local
+    /// fixtures when Supabase is unavailable or has no rows for the category.
     func recommendedPlaces(
         for category: PlaceCategory,
         near center: CLLocationCoordinate2D,
@@ -24,11 +26,38 @@ struct PlacesService {
         bestCount: Int = 10,
         pickCount: Int = 3
     ) async throws -> [PlaceAnnotation] {
-        Self.developmentPlaces(
+        if let supabasePlaces = await supabasePlaces(for: category, pickCount: pickCount),
+           !supabasePlaces.isEmpty {
+            return supabasePlaces
+        }
+
+        return Self.developmentPlaces(
             for: category,
             near: center,
             pickCount: pickCount
         )
+    }
+
+    private func supabasePlaces(
+        for category: PlaceCategory,
+        pickCount: Int
+    ) async -> [PlaceAnnotation]? {
+        guard let client = SupabaseService.shared.client else { return nil }
+
+        do {
+            let rows: [SupabasePlaceRow] = try await client
+                .from("places")
+                .select("*")
+                .eq("category", value: category.rawValue)
+                .execute()
+                .value
+
+            let places = rows.compactMap(\.annotation)
+            return Array(Self.rankedByRatingAndPopularity(places).prefix(pickCount))
+        } catch {
+            print("[PlacesService] Supabase places error: \(error)")
+            return nil
+        }
     }
 
     // MARK: - Ranking
@@ -430,5 +459,71 @@ struct PlacesService {
             .trimmingCharacters(in: CharacterSet(charactersIn: "-"))
 
         return "\(prefix)-\(slug)"
+    }
+}
+
+private struct SupabasePlaceRow: Decodable {
+    let id: String
+    let name: String
+    let address: String
+    let description: String
+    let category: String
+    let latitude: Double
+    let longitude: Double
+    let rating: Double?
+    let userRatingCount: Int?
+    let photoURL: String?
+
+    var annotation: PlaceAnnotation? {
+        guard let placeCategory = PlaceCategory(rawValue: category) else { return nil }
+
+        return PlaceAnnotation(
+            id: id,
+            name: name,
+            address: address,
+            description: description,
+            coordinate: CLLocationCoordinate2D(latitude: latitude, longitude: longitude),
+            category: placeCategory,
+            rating: rating,
+            userRatingCount: userRatingCount,
+            photoURL: Self.url(from: photoURL)
+        )
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case name
+        case address
+        case description
+        case category
+        case latitude
+        case longitude
+        case rating
+        case userRatingCount = "user_rating_count"
+        case photoURL = "photo_url"
+        case photoUrl = "photoUrl"
+        case photoUrlLower = "photourl"
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(String.self, forKey: .id)
+        name = try container.decode(String.self, forKey: .name)
+        address = try container.decode(String.self, forKey: .address)
+        description = try container.decode(String.self, forKey: .description)
+        category = try container.decode(String.self, forKey: .category)
+        latitude = try container.decode(Double.self, forKey: .latitude)
+        longitude = try container.decode(Double.self, forKey: .longitude)
+        rating = try container.decodeIfPresent(Double.self, forKey: .rating)
+        userRatingCount = try container.decodeIfPresent(Int.self, forKey: .userRatingCount)
+        photoURL = try container.decodeIfPresent(String.self, forKey: .photoURL)
+            ?? container.decodeIfPresent(String.self, forKey: .photoUrl)
+            ?? container.decodeIfPresent(String.self, forKey: .photoUrlLower)
+    }
+
+    private static func url(from value: String?) -> URL? {
+        guard let trimmed = value?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !trimmed.isEmpty else { return nil }
+        return URL(string: trimmed)
     }
 }
