@@ -97,7 +97,7 @@ struct ProfileView: View {
                     
                     Text("\(viewModel.profile.age)")
                         .font(.system(size: 15, weight: .bold))
-                        .foregroundStyle(AppColors.brandPrimary)
+                        .foregroundStyle(AppColors.accentText)
                         .padding(.horizontal, 9)
                         .padding(.vertical, 6)
                         .background(AppColors.textOnAccent, in: Capsule())
@@ -316,7 +316,7 @@ private struct ProfileStatTile: View {
         VStack(alignment: .leading, spacing: 10) {
             Image(systemName: systemImage)
                 .font(.system(size: 14, weight: .bold))
-                .foregroundStyle(AppColors.brandPrimary)
+                .foregroundStyle(AppColors.accentText)
                 .frame(width: 30, height: 30)
                 .background(AppColors.accentSurface, in: Circle())
 
@@ -349,7 +349,7 @@ private struct EditPencil: View {
         Button(action: action) {
             Image(systemName: "pencil")
                 .font(.system(size: 13, weight: .bold))
-                .foregroundStyle(AppColors.brandPrimary)
+                .foregroundStyle(AppColors.accentText)
                 .frame(width: 30, height: 30)
                 .background(onLight ? AnyShapeStyle(AppColors.textOnAccent) : AnyShapeStyle(AppColors.accentSurface), in: Circle())
                 .overlay(Circle().stroke(onLight ? AppColors.textOnAccent.opacity(0.7) : AppColors.cardBorder, lineWidth: 1))
@@ -371,7 +371,7 @@ private struct SectionCard<Content: View>: View {
             HStack(spacing: 10) {
                 Image(systemName: icon)
                     .font(.system(size: 15, weight: .bold))
-                    .foregroundStyle(AppColors.brandPrimary)
+                    .foregroundStyle(AppColors.accentText)
                     .frame(width: 30, height: 30)
                     .background(AppColors.accentSurface, in: Circle())
                 Text(title)
@@ -416,7 +416,7 @@ private struct EditSheetScaffold<Content: View>: View {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save", action: onSave)
                         .fontWeight(.semibold)
-                        .foregroundStyle(canSave ? AppColors.brandPrimary : AppColors.accentDisabled)
+                        .foregroundStyle(canSave ? AppColors.accentText : AppColors.accentDisabled)
                         .disabled(!canSave)
                 }
             }
@@ -467,7 +467,7 @@ private struct SelectableChip: View {
                     Image(systemName: "checkmark").font(.system(size: 11, weight: .bold))
                 }
             }
-            .foregroundStyle(isSelected ? .white : AppColors.brandPrimary)
+            .foregroundStyle(isSelected ? AppColors.textOnAccent : AppColors.accentText)
             .padding(.horizontal, 14)
             .padding(.vertical, 8)
             .background(isSelected ? AppColors.brandPrimary : AppColors.accentSurface, in: Capsule())
@@ -758,7 +758,7 @@ private struct SocialsEditorSheet: View {
             HStack(spacing: 10) {
                 Image(systemName: systemImage)
                     .font(.system(size: 14, weight: .bold))
-                    .foregroundStyle(AppColors.brandPrimary)
+                    .foregroundStyle(AppColors.accentText)
                     .frame(width: 24, height: 24)
                 TextField("username", text: text)
                     .font(.system(size: 16, weight: .medium))
@@ -884,7 +884,7 @@ private struct GalleryEditorSheet: View {
                     VStack(spacing: 8) {
                         Image(systemName: "photo.on.rectangle.angled")
                             .font(.system(size: 30))
-                            .foregroundStyle(AppColors.brandPrimary.opacity(0.6))
+                            .foregroundStyle(AppColors.accentText.opacity(0.6))
                         Text("No photos yet").font(.system(size: 15, weight: .semibold))
                             .foregroundStyle(AppColors.primaryText)
                         Text("Add photos from your trips to share with other travelers.")

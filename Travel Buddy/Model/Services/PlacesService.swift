@@ -2,23 +2,57 @@
 //  PlacesService.swift
 //  Travel Buddy
 //
-//  Place recommendations. Supabase rows are preferred; local fixtures keep the
-//  map usable when Supabase is not configured or has no matching data.
+//  Place recommendations for the Explore map.
+//
+//  Source is controlled by a single flag, `useGoogleAPI`:
+//    • true  → live Google Places API (New) "Nearby Search" (uses billing + key).
+//    • false → offline dev fixtures for Badung + Cupertino (no network, no cost).
+//
+//  Either way results are ranked by a blend of average rating *and* number of
+//  ratings (Bayesian weighted rating), then a small sample of the best is returned.
+//
+//  Docs: https://developers.google.com/maps/documentation/places/web-service/nearby-search
+//
 
 import CoreLocation
 import Foundation
-import Supabase
+
+enum PlacesServiceError: LocalizedError {
+    case missingAPIKey
+    case requestFailed(status: Int, body: String)
+
+    var errorDescription: String? {
+        switch self {
+        case .missingAPIKey:
+            return "Google Places API key is missing. Set it in Secrets.xcconfig."
+        case .requestFailed(let status, _):
+            return "Places request failed (HTTP \(status))."
+        }
+    }
+}
 
 struct PlacesService {
+    /// ⬇️ THE ONLY SWITCH. true = live Google Places API, false = offline dev fixtures.
+    static let useGoogleAPI = true
+
     static let shared = PlacesService()
+
+    private let session: URLSession
+    private let endpoint = URL(string: "https://places.googleapis.com/v1/places:searchNearby")!
 
     private static let badungCenter = CLLocationCoordinate2D(latitude: -8.6558, longitude: 115.1354)
     private static let cupertinoCenter = CLLocationCoordinate2D(latitude: 37.3229, longitude: -122.0322)
 
+    init(session: URLSession = .shared) {
+        self.session = session
+    }
+
+    private var apiKey: String { AppConfig.googlePlacesAPIKey }
+
     // MARK: - Public API
 
-    /// Returns up to `pickCount` places from Supabase, falling back to local
-    /// fixtures when Supabase is unavailable or has no rows for the category.
+    /// Returns up to `pickCount` places, chosen from the `bestCount` highest-ranked
+    /// results for the given category near `center`.
     func recommendedPlaces(
         for category: PlaceCategory,
         near center: CLLocationCoordinate2D,
@@ -26,38 +60,58 @@ struct PlacesService {
         bestCount: Int = 10,
         pickCount: Int = 3
     ) async throws -> [PlaceAnnotation] {
-        if let supabasePlaces = await supabasePlaces(for: category, pickCount: pickCount),
-           !supabasePlaces.isEmpty {
-            return supabasePlaces
+        guard Self.useGoogleAPI else {
+            return Self.developmentPlaces(for: category, near: center, pickCount: pickCount)
         }
 
-        return Self.developmentPlaces(
-            for: category,
-            near: center,
-            pickCount: pickCount
-        )
+        let candidates = try await searchNearby(category: category, center: center, radius: radius)
+        let ranked = Self.rankedByRatingAndPopularity(candidates)
+        let best = Array(ranked.prefix(bestCount))
+        return Array(best.shuffled().prefix(pickCount))
     }
 
-    private func supabasePlaces(
-        for category: PlaceCategory,
-        pickCount: Int
-    ) async -> [PlaceAnnotation]? {
-        guard let client = SupabaseService.shared.client else { return nil }
+    // MARK: - Networking (Google Places API New)
 
-        do {
-            let rows: [SupabasePlaceRow] = try await client
-                .from("places")
-                .select("*")
-                .eq("category", value: category.rawValue)
-                .execute()
-                .value
+    private func searchNearby(
+        category: PlaceCategory,
+        center: CLLocationCoordinate2D,
+        radius: Double
+    ) async throws -> [PlaceAnnotation] {
+        guard !apiKey.isEmpty else { throw PlacesServiceError.missingAPIKey }
 
-            let places = rows.compactMap(\.annotation)
-            return Array(Self.rankedByRatingAndPopularity(places).prefix(pickCount))
-        } catch {
-            print("[PlacesService] Supabase places error: \(error)")
-            return nil
+        var request = URLRequest(url: endpoint)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue(apiKey, forHTTPHeaderField: "X-Goog-Api-Key")
+        // Only request the fields we actually use (required by the New Places API).
+        request.setValue(
+            "places.id,places.displayName,places.formattedAddress,places.location,places.rating,places.userRatingCount,places.photos,places.editorialSummary",
+            forHTTPHeaderField: "X-Goog-FieldMask"
+        )
+
+        let body: [String: Any] = [
+            "includedTypes": Self.includedTypes(for: category),
+            "maxResultCount": 20,
+            "rankPreference": "POPULARITY",
+            "locationRestriction": [
+                "circle": [
+                    "center": ["latitude": center.latitude, "longitude": center.longitude],
+                    "radius": radius
+                ]
+            ]
+        ]
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
+
+        let (data, response) = try await session.data(for: request)
+        let status = (response as? HTTPURLResponse)?.statusCode ?? -1
+        guard (200..<300).contains(status) else {
+            let bodyText = String(data: data, encoding: .utf8) ?? ""
+            print("[PlacesService] HTTP \(status): \(bodyText)")
+            throw PlacesServiceError.requestFailed(status: status, body: bodyText)
         }
+
+        let decoded = try JSONDecoder().decode(NearbyResponse.self, from: data)
+        return (decoded.places ?? []).compactMap { $0.toAnnotation(category: category, apiKey: apiKey) }
     }
 
     // MARK: - Ranking
@@ -86,7 +140,20 @@ struct PlacesService {
         return rated.sorted { score($0) > score($1) }
     }
 
-    // MARK: - Development fixtures
+    // MARK: - Category → Google place types (Places API New, "Table A")
+
+    private static func includedTypes(for category: PlaceCategory) -> [String] {
+        switch category {
+        case .nature:
+            return ["park", "national_park", "hiking_area", "beach"]
+        case .activities:
+            return ["tourist_attraction", "museum", "art_gallery", "amusement_park"]
+        case .food:
+            return ["restaurant", "cafe"]
+        }
+    }
+
+    // MARK: - Development fixtures (used when useGoogleAPI == false)
 
     private enum DevelopmentRegion {
         case badung
@@ -462,68 +529,44 @@ struct PlacesService {
     }
 }
 
-private struct SupabasePlaceRow: Decodable {
-    let id: String
-    let name: String
-    let address: String
-    let description: String
-    let category: String
-    let latitude: Double
-    let longitude: Double
+// MARK: - Response DTOs (Google Places API New)
+
+private struct NearbyResponse: Decodable {
+    let places: [GooglePlace]?
+}
+
+private struct GooglePlace: Decodable {
+    struct LocalizedText: Decodable { let text: String? }
+    struct LatLng: Decodable { let latitude: Double; let longitude: Double }
+    struct Photo: Decodable { let name: String? }
+
+    let id: String?
+    let displayName: LocalizedText?
+    let formattedAddress: String?
+    let location: LatLng?
     let rating: Double?
     let userRatingCount: Int?
-    let photoURL: String?
+    let photos: [Photo]?
+    let editorialSummary: LocalizedText?
 
-    var annotation: PlaceAnnotation? {
-        guard let placeCategory = PlaceCategory(rawValue: category) else { return nil }
+    func toAnnotation(category: PlaceCategory, apiKey: String) -> PlaceAnnotation? {
+        guard let location, let name = displayName?.text, !name.isEmpty else { return nil }
+
+        var photoURL: URL?
+        if let photoName = photos?.first?.name, !photoName.isEmpty {
+            photoURL = URL(string: "https://places.googleapis.com/v1/\(photoName)/media?maxHeightPx=800&maxWidthPx=800&key=\(apiKey)")
+        }
 
         return PlaceAnnotation(
-            id: id,
+            id: id ?? UUID().uuidString,
             name: name,
-            address: address,
-            description: description,
-            coordinate: CLLocationCoordinate2D(latitude: latitude, longitude: longitude),
-            category: placeCategory,
+            address: formattedAddress ?? "",
+            description: editorialSummary?.text ?? "",
+            coordinate: CLLocationCoordinate2D(latitude: location.latitude, longitude: location.longitude),
+            category: category,
             rating: rating,
             userRatingCount: userRatingCount,
-            photoURL: Self.url(from: photoURL)
+            photoURL: photoURL
         )
-    }
-
-    enum CodingKeys: String, CodingKey {
-        case id
-        case name
-        case address
-        case description
-        case category
-        case latitude
-        case longitude
-        case rating
-        case userRatingCount = "user_rating_count"
-        case photoURL = "photo_url"
-        case photoUrl = "photoUrl"
-        case photoUrlLower = "photourl"
-    }
-
-    init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        id = try container.decode(String.self, forKey: .id)
-        name = try container.decode(String.self, forKey: .name)
-        address = try container.decode(String.self, forKey: .address)
-        description = try container.decode(String.self, forKey: .description)
-        category = try container.decode(String.self, forKey: .category)
-        latitude = try container.decode(Double.self, forKey: .latitude)
-        longitude = try container.decode(Double.self, forKey: .longitude)
-        rating = try container.decodeIfPresent(Double.self, forKey: .rating)
-        userRatingCount = try container.decodeIfPresent(Int.self, forKey: .userRatingCount)
-        photoURL = try container.decodeIfPresent(String.self, forKey: .photoURL)
-            ?? container.decodeIfPresent(String.self, forKey: .photoUrl)
-            ?? container.decodeIfPresent(String.self, forKey: .photoUrlLower)
-    }
-
-    private static func url(from value: String?) -> URL? {
-        guard let trimmed = value?.trimmingCharacters(in: .whitespacesAndNewlines),
-              !trimmed.isEmpty else { return nil }
-        return URL(string: trimmed)
     }
 }

@@ -48,6 +48,7 @@ struct AppColors {
                 : UIColor(red: 0.06, green: 0.08, blue: 0.09, alpha: 1)
         })
     }
+    
 
     static var secondaryText: Color {
         Color(UIColor { traitCollection in
@@ -174,6 +175,16 @@ struct AppColors {
     }
 
     // MARK: - Semantic UI tokens
+    /// Brand color tuned for *text and icons on the screen background*.
+    /// Light: brandPrimary. Dark: lightened teal — brandPrimary is too dark on dark bg.
+    static var accentText: Color {
+        Color(UIColor { traitCollection in
+            traitCollection.userInterfaceStyle == .dark
+                ? UIColor(red: 0.45, green: 0.77, blue: 0.86, alpha: 1)
+                : UIColor(red: 0.016, green: 0.337, blue: 0.431, alpha: 1)
+        })
+    }
+
     /// White used over brand/accent/photo backgrounds (button labels, strokes).
     static var textOnAccent: Color { .white }
 

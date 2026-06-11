@@ -217,7 +217,7 @@ struct ActivityGroupsView: View {
                 Button(action: { showDatePicker = true }) {
                     HStack {
                         Image(systemName: "calendar")
-                            .foregroundStyle(AppColors.accent)
+                            .foregroundStyle(AppColors.accentText)
                         Text(
                             viewModel.selectedDate.formatted(
                                 date: .abbreviated, time: .omitted
@@ -412,13 +412,13 @@ struct GroupRowView: View {
     }
 
     private var actionBackground: Color {
-        if hasJoined { return AppColors.destructive.opacity(0.9) }
-        if group.isFull { return Color.gray.opacity(0.28) }
+        if hasJoined { return AppColors.accentSurface }
+        if group.isFull { return AppColors.disabledSurface }
         return AppColors.accent
     }
 
     private var actionForeground: Color {
-        hasJoined || (!group.isFull) ? .white : .gray
+        hasJoined ? AppColors.accentText : (group.isFull ? AppColors.secondaryText : AppColors.textOnAccent)
     }
 
     private var statusTitle: String {
@@ -428,19 +428,19 @@ struct GroupRowView: View {
     }
 
     private var statusForeground: Color {
-        if hasJoined { return AppColors.joinedStatusText }
+        if hasJoined { return AppColors.accentText }
         if group.isFull { return AppColors.secondaryText }
-        return AppColors.brandPrimary
+        return AppColors.accentText
     }
 
     private var statusBackground: Color {
-        if hasJoined { return AppColors.joinedStatusSurface }
+        if hasJoined { return AppColors.accentSurface }
         if group.isFull { return AppColors.disabledSurface }
         return AppColors.accentSurface
     }
 
     private var statusBorder: Color {
-        if hasJoined { return AppColors.warmAccent.opacity(0.45) }
+        if hasJoined { return AppColors.accent.opacity(0.45) }
         return AppColors.cardBorder
     }
 
@@ -491,7 +491,7 @@ private struct MeetupInfoPill: View {
     var body: some View {
         Label(text, systemImage: icon)
             .font(.system(size: 12, weight: .semibold))
-            .foregroundStyle(AppColors.brandPrimary)
+            .foregroundStyle(AppColors.accentText)
             .lineLimit(1)
             .padding(.horizontal, 10)
             .padding(.vertical, 7)
@@ -508,7 +508,7 @@ struct LeaveGroupConfirmationView: View {
     var body: some View {
         ZStack {
             LinearGradient(
-                gradient: Gradient(colors: [AppColors.destructive, AppColors.destructive.opacity(0.8)]),
+                gradient: Gradient(colors: [AppColors.brandPrimary, AppColors.brandSecondary]),
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             )
@@ -535,7 +535,7 @@ struct LeaveGroupConfirmationView: View {
                             .overlay(
                                 Image(systemName: "person.crop.circle.badge.minus")
                                     .font(.system(size: 42, weight: .bold))
-                                    .foregroundStyle(AppColors.destructive)
+                                    .foregroundStyle(AppColors.brandPrimary)
                             )
                     }
                     .frame(height: 180)
@@ -562,7 +562,7 @@ struct LeaveGroupConfirmationView: View {
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 14)
                         .background(AppColors.textOnAccent)
-                        .foregroundStyle(AppColors.destructive)
+                        .foregroundStyle(AppColors.brandPrimary)
                         .cornerRadius(12)
                 }
                 .padding(.horizontal, 20)
@@ -826,7 +826,7 @@ struct GroupDetailView: View {
                     Label("\(group.members.count)/\(group.maxCapacity) participants", systemImage: "person.3.fill")
                 }
                 .font(.system(size: 14, weight: .semibold))
-                .foregroundStyle(AppColors.brandPrimary)
+                .foregroundStyle(AppColors.accentText)
                 .padding(16)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .background(AppColors.accentSurface, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
@@ -876,8 +876,8 @@ struct GroupDetailView: View {
                         .fontWeight(.bold)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 14)
-                        .background(AppColors.destructive.opacity(0.12))
-                        .foregroundStyle(AppColors.destructive)
+                        .background(AppColors.accentSurface)
+                        .foregroundStyle(AppColors.accentText)
                         .clipShape(Capsule())
                     } else {
                         Button(group.isFull ? "Meetup is Full" : "Join Meetup") {
@@ -888,7 +888,7 @@ struct GroupDetailView: View {
                         .fontWeight(.bold)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 14)
-                        .background(group.isFull ? Color.gray.opacity(0.25) : AppColors.accent)
+                        .background(group.isFull ? AppColors.disabledSurface : AppColors.accent)
                         .foregroundStyle(group.isFull ? AppColors.secondaryText : AppColors.textOnAccent)
                         .clipShape(Capsule())
                         .disabled(group.isFull)

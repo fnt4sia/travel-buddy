@@ -26,7 +26,6 @@ struct UnifiedOnboardingView: View {
     @State private var userLocation: CLLocation?
     @State private var keyboardHeight: CGFloat = 0
     @State private var mascotIdle = false
-    @State private var mascotsAreOffscreen = false
     @State private var accountError: String?
     @State private var isSavingProfile = false
     @ObservedObject private var supabaseService = SupabaseService.shared
@@ -105,12 +104,6 @@ struct UnifiedOnboardingView: View {
         .onAppear {
             withAnimation(.easeInOut(duration: 5.8).repeatForever(autoreverses: true)) {
                 mascotIdle = true
-            }
-        }
-        .onChange(of: currentStep) { _, newStep in
-            let shouldMoveOffscreen = newStep != .welcome
-            withAnimation(.easeInOut(duration: shouldMoveOffscreen ? 1.15 : 0.85)) {
-                mascotsAreOffscreen = shouldMoveOffscreen
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { notification in
@@ -625,34 +618,58 @@ struct UnifiedOnboardingView: View {
         }
     }
 
-    // MARK: - Mascot + background + globe (unchanged)
+    // MARK: - Mascot + background + globe
 
+    // One mascot per phase. Inactive ones wait below the screen, the active one
+    // floats on the globe, a finished one exits through the top — so each step
+    // reads as "old goes up, new comes up from the bottom".
+    //   welcome              → cloud
+    //   nameInput/profile    → blue/green pin
+    //   location/confirmed   → pink pin
     private var mascotLayer: some View {
         GeometryReader { proxy in
             let width = proxy.size.width
-            let isWelcomePosition = !mascotsAreOffscreen
+            let height = proxy.size.height
             ZStack {
-                Image("teal")
+                Image("cloud")
                     .resizable().scaledToFit()
-                    .frame(width: min(width * 0.58, 276))
-                    .rotationEffect(.degrees(isWelcomePosition ? (mascotIdle ? 2 : -2) : -8))
-                    .position(x: isWelcomePosition ? width * 0.68 : width * 0.78,
-                              y: isWelcomePosition ? 400 : -320)
-                    .offset(x: isWelcomePosition ? (mascotIdle ? 6 : -4) : 0,
-                            y: isWelcomePosition ? (mascotIdle ? -12 : 8) : 0)
+                    .frame(width: min(width * 0.60, 280))
+                    .rotationEffect(.degrees(mascotIdle ? 2 : -2))
+                    .offset(x: mascotIdle ? 6 : -4, y: mascotIdle ? -12 : 8)
+                    .position(x: width * 0.5, y: currentStep == .welcome ? height * 0.40 : -320)
 
-                Image("dark green")
+                Image("pin")
                     .resizable().scaledToFit()
-                    .frame(width: min(width * 0.42, 184))
-                    .rotationEffect(.degrees(isWelcomePosition ? (mascotIdle ? -4 : -10) : -16))
-                    .position(x: isWelcomePosition ? width * 0.29 : width * 0.26,
-                              y: isWelcomePosition ? 550 : -260)
-                    .offset(x: isWelcomePosition ? (mascotIdle ? -5 : 4) : 0,
-                            y: isWelcomePosition ? (mascotIdle ? 9 : -7) : 0)
+                    .frame(width: min(width * 0.30, 140))
+                    .rotationEffect(.degrees(mascotIdle ? -3 : 3))
+                    .offset(y: mascotIdle ? -10 : 6)
+                    .position(x: width * 0.58, y: pinY(in: height))
+
+                Image("pinpink")
+                    .resizable().scaledToFit()
+                    .frame(width: min(width * 0.32, 150))
+                    .rotationEffect(.degrees(mascotIdle ? 3 : -3))
+                    .offset(y: mascotIdle ? -10 : 6)
+                    .position(x: width * 0.45, y: pinkPinY(in: height))
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .allowsHitTesting(false)
-            .animation(.easeInOut(duration: 1.15), value: mascotsAreOffscreen)
+            .animation(.easeInOut(duration: 1.0), value: currentStep)
+        }
+    }
+
+    private func pinY(in height: CGFloat) -> CGFloat {
+        switch currentStep {
+        case .welcome: return height + 280              // waits below
+        case .nameInput, .profileDetails: return height * 0.42  // on the globe
+        case .locationPermission, .locationConfirmed: return -320  // exits up
+        }
+    }
+
+    private func pinkPinY(in height: CGFloat) -> CGFloat {
+        switch currentStep {
+        case .welcome, .nameInput, .profileDetails: return height + 280  // waits below
+        case .locationPermission, .locationConfirmed: return height * 0.42  // on the globe
         }
     }
 

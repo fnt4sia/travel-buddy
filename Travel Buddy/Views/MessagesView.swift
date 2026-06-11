@@ -10,7 +10,7 @@ struct MessagesView: View {
                 VStack(alignment: .leading, spacing: 28) {
                     Text("Messages")
                         .font(.system(size: 38, weight: .bold))
-                        .foregroundColor(AppColors.accent)
+                        .foregroundColor(AppColors.accentText)
                         .padding(.top, 44)
 
                     if store.joinedGroups.isEmpty {
@@ -48,7 +48,7 @@ struct MessagesView: View {
         VStack(spacing: 14) {
             Image(systemName: "bubble.left.and.bubble.right")
                 .font(.system(size: 36, weight: .semibold))
-                .foregroundStyle(AppColors.accent)
+                .foregroundStyle(AppColors.accentText)
 
             Text("No meetup chats yet")
                 .font(.title3)
@@ -84,19 +84,19 @@ private struct ConversationRow: View {
 
                     Text("• \(dateText)")
                         .font(.system(size: 14, weight: .semibold))
-                        .foregroundColor(AppColors.primaryText.opacity(0.34))
+                        .foregroundColor(AppColors.secondaryText)
                         .lineLimit(1)
                 }
 
                 Text(previewText)
                     .font(.system(size: 16))
-                    .foregroundColor(AppColors.primaryText.opacity(0.38))
+                    .foregroundColor(AppColors.secondaryText)
                     .lineLimit(2)
             }
             .padding(.bottom, 14)
             .overlay(alignment: .bottom) {
                 Rectangle()
-                    .fill(AppColors.primaryText.opacity(0.1))
+                    .fill(AppColors.divider)
                     .frame(height: 1)
             }
         }

@@ -132,7 +132,7 @@ struct ProfileDetailView: View {
                         .foregroundStyle(AppColors.primaryText)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 14)
-                        .background(AppColors.textOnAccent)
+                        .background(AppColors.surface)
                         .cornerRadius(12)
                 }
                 .padding(20)

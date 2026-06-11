@@ -268,7 +268,7 @@ struct PlaceDetailSheet: View {
                 .padding(.horizontal, 10)
                 .padding(.vertical, 5)
                 .background(AppColors.accent.opacity(0.12))
-                .foregroundStyle(AppColors.accent)
+                .foregroundStyle(AppColors.accentText)
                 .clipShape(Capsule())
                 .padding(.horizontal, 20)
 
@@ -280,7 +280,7 @@ struct PlaceDetailSheet: View {
                         AppColors.fieldSurface
                         Image(systemName: "photo")
                             .font(.largeTitle)
-                            .foregroundStyle(AppColors.accent)
+                            .foregroundStyle(AppColors.accentText)
                     }
                 }
                 .frame(height: 200)
@@ -314,7 +314,7 @@ struct PlaceDetailSheet: View {
                         Button(action: { showDatePicker = true }) {
                             HStack {
                                 Image(systemName: "calendar")
-                                    .foregroundStyle(AppColors.accent)
+                                    .foregroundStyle(AppColors.accentText)
                                 Text(
                                     groupsViewModel.selectedDate.formatted(
                                         date: .abbreviated, time: .omitted
@@ -423,7 +423,7 @@ struct FilterMenuView: View {
                             Image(systemName: "checkmark")
                                 .font(.caption)
                                 .fontWeight(.semibold)
-                                .foregroundStyle(AppColors.accent)
+                                .foregroundStyle(AppColors.accentText)
                         }
                     }
                     .padding(.horizontal, 16)
@@ -566,7 +566,7 @@ struct MainMapView: View {
                 Text(viewModel.locationName)
                     .font(.title)
                     .fontWeight(.semibold)
-                    .foregroundStyle(AppColors.accent)
+                    .foregroundStyle(AppColors.accentText)
             }
 
             Spacer()
@@ -599,7 +599,7 @@ struct MainMapView: View {
             .overlay(alignment: .topTrailing) {
                 if selectedFilter != nil {
                     Circle()
-                        .fill(AppColors.accent)
+                        .fill(AppColors.accentText)
                         .frame(width: 8, height: 8)
                         .offset(x: 2, y: -2)
                 }
@@ -658,7 +658,7 @@ struct MainMapView: View {
                     .shadow(color: AppColors.scrim.opacity(0.15), radius: 6, x: 0, y: 2)
                 Image(systemName: "location.fill")
                     .font(.system(size: 17, weight: .medium))
-                    .foregroundStyle(AppColors.accent)
+                    .foregroundStyle(AppColors.accentText)
             }
         }
     }
